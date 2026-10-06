@@ -1,5 +1,9 @@
 # Reflect Go
 
+[![Reflect Go — Your weights. Your way. (Watch the 12-second intro)](docs/media/reflect-go-intro-poster.jpg)](docs/media/reflect-go-intro.mp4)
+
+▶ [Watch the intro video](docs/media/reflect-go-intro.mp4) (12 seconds, with sound)
+
 **Reflect on the Go** — portable local inference, carried on a drive.
 
 The drive stores model weights, launcher, inference runtime, libraries, and settings. The attached computer supplies CPU, GPU, and RAM. Weights are loaded into memory while running; the model does not need to be installed on the computer first. A model's claim to be “in the cloud” is generated text, not information about the running process.
