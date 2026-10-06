@@ -1,0 +1,5 @@
+{
+  "context": 2048,
+  "max_tokens": 512,
+  "temperature": 0.6
+}

@@ -1,0 +1,118 @@
+{
+  "schema": 1,
+  "versions": {
+    "codex": "0.160.0",
+    "opencode": "1.18.34",
+    "claude": "2.1.289"
+  },
+  "packs": {
+    "codex/macos-arm64": {
+      "url": "https://github.com/openai/codex/releases/download/rust-v0.160.0/codex-aarch64-apple-darwin.tar.gz",
+      "sha256": "07c3c7ca376a8f791115342f53138dda37e97cfa29b8125d0652d93784894b5d",
+      "license": "Apache-2.0",
+      "download_bytes": 95893648
+    },
+    "opencode/macos-arm64": {
+      "url": "https://github.com/anomalyco/opencode/releases/download/v1.18.34/opencode-darwin-arm64.zip",
+      "sha256": "8522b70f545184b3a8d97c5ca4f814093b2476d72aebfda8c48bcd072ec31d1b",
+      "license": "MIT",
+      "download_bytes": 45538151
+    },
+    "claude/macos-arm64": {
+      "url": "https://registry.npmjs.org/@anthropic-ai/claude-code-darwin-arm64/-/claude-code-darwin-arm64-2.1.289.tgz",
+      "integrity": "sha512-jhZQ4BdBt2E9oiHdgpwu/HIgRDlyUazDfXIbIerUFDAPcb6c7Tl1QtMvLz3KxXkZXigYv0q4U6xSHHd78TQdHA==",
+      "license": "Proprietary; personal copy; excluded from public archive",
+      "unpacked_bytes": 229617041
+    },
+    "codex/macos-x64": {
+      "url": "https://github.com/openai/codex/releases/download/rust-v0.160.0/codex-x86_64-apple-darwin.tar.gz",
+      "sha256": "a50c10606e4e81b8dd2f7b6bab635595aabc773c84cf2071773fbaf067825fbf",
+      "license": "Apache-2.0",
+      "download_bytes": 104691669
+    },
+    "opencode/macos-x64": {
+      "url": "https://github.com/anomalyco/opencode/releases/download/v1.18.34/opencode-darwin-x64-baseline.zip",
+      "sha256": "8e12a3da8216b55a47c2ce9b2745745bbf7e9d76efa33bc9a0959f97da686115",
+      "license": "MIT",
+      "download_bytes": 49165409
+    },
+    "claude/macos-x64": {
+      "url": "https://registry.npmjs.org/@anthropic-ai/claude-code-darwin-x64/-/claude-code-darwin-x64-2.1.289.tgz",
+      "integrity": "sha512-KErKulmExUbnAqXDz75FGfph+fslAHL0UqIW9rYlGwNFlPJAP5UTXIKcKp6Jh1bgVQjdJJEqg79kUjuriVUDDw==",
+      "license": "Proprietary; personal copy; excluded from public archive",
+      "unpacked_bytes": 238082745
+    },
+    "codex/windows-x64": {
+      "url": "https://github.com/openai/codex/releases/download/rust-v0.160.0/codex-x86_64-pc-windows-msvc.exe.tar.gz",
+      "sha256": "3927169c5f287cbb0fac256c43972e987b7383b5d661efd3d7727df18a95ec5a",
+      "license": "Apache-2.0",
+      "download_bytes": 109280397
+    },
+    "opencode/windows-x64": {
+      "url": "https://github.com/anomalyco/opencode/releases/download/v1.18.34/opencode-windows-x64-baseline.zip",
+      "sha256": "f89ab2720050780a450e3cf3e48ac3f0409235b46b6c548c69aa2b7051d716f4",
+      "license": "MIT",
+      "download_bytes": 62158547
+    },
+    "claude/windows-x64": {
+      "url": "https://registry.npmjs.org/@anthropic-ai/claude-code-win32-x64/-/claude-code-win32-x64-2.1.289.tgz",
+      "integrity": "sha512-t6PwcRoMIeuNPbnkf9bFxdUv3xBgUSnk1yRU3r8b5CjovwzV1zUY/talE4rgGAvcTwmndirtWOny/3LPf6Ju+w==",
+      "license": "Proprietary; personal copy; excluded from public archive",
+      "unpacked_bytes": 249523418
+    },
+    "codex/windows-arm64": {
+      "url": "https://github.com/openai/codex/releases/download/rust-v0.160.0/codex-aarch64-pc-windows-msvc.exe.tar.gz",
+      "sha256": "7f4756a7e6b5cc4e99122de58e90fe1b89b28c6a88a6f297bf3589c965bf41e2",
+      "license": "Apache-2.0",
+      "download_bytes": 99950813
+    },
+    "opencode/windows-arm64": {
+      "url": "https://github.com/anomalyco/opencode/releases/download/v1.18.34/opencode-windows-arm64.zip",
+      "sha256": "b738ae4e823c862eaba6d6bd6e1d35e01b46851d7160882c7bdb189f33a16447",
+      "license": "MIT",
+      "download_bytes": 60647128
+    },
+    "claude/windows-arm64": {
+      "url": "https://registry.npmjs.org/@anthropic-ai/claude-code-win32-arm64/-/claude-code-win32-arm64-2.1.289.tgz",
+      "integrity": "sha512-dMKH0j/Zm2q5L71rVXx4NaWWlK5iUOCmN12XgwrIx7EjYhvpgVDLdNHm9yohxb3I0Cb4iaujR/EBb75FuLbIGQ==",
+      "license": "Proprietary; personal copy; excluded from public archive",
+      "unpacked_bytes": 237045986
+    },
+    "codex/linux-x64": {
+      "url": "https://github.com/openai/codex/releases/download/rust-v0.160.0/codex-x86_64-unknown-linux-musl.tar.gz",
+      "sha256": "306865417d4ee7a927785852910a527f41e1e159add390ac5ae3accb67d44a13",
+      "license": "Apache-2.0",
+      "download_bytes": 109304578
+    },
+    "opencode/linux-x64": {
+      "url": "https://github.com/anomalyco/opencode/releases/download/v1.18.34/opencode-linux-x64-baseline.tar.gz",
+      "sha256": "24b0d458d21ef548b2752166303defcf7f4945b049fb4876ab78dfaf86d81b27",
+      "license": "MIT",
+      "download_bytes": 60665421
+    },
+    "claude/linux-x64": {
+      "url": "https://registry.npmjs.org/@anthropic-ai/claude-code-linux-x64/-/claude-code-linux-x64-2.1.289.tgz",
+      "integrity": "sha512-I23SaSYE8vSwFbJ+Tc0mRlzvJmRQNaiyBUXK/K5R6BVr2lOoCdMI2SJR4N6xiVYy6yyIt39JNiyvPHoiOymyyw==",
+      "license": "Proprietary; personal copy; excluded from public archive",
+      "unpacked_bytes": 246107906
+    },
+    "codex/linux-arm64": {
+      "url": "https://github.com/openai/codex/releases/download/rust-v0.160.0/codex-aarch64-unknown-linux-musl.tar.gz",
+      "sha256": "883620139925f677e5a12c95ba87a1d7f421388ebb797b1c10aba42a04ede9d7",
+      "license": "Apache-2.0",
+      "download_bytes": 101627917
+    },
+    "opencode/linux-arm64": {
+      "url": "https://github.com/anomalyco/opencode/releases/download/v1.18.34/opencode-linux-arm64.tar.gz",
+      "sha256": "bbdb3f00c2c51e42e315525233151309724226a8776da8e9145e3b0fa3d5310f",
+      "license": "MIT",
+      "download_bytes": 60479105
+    },
+    "claude/linux-arm64": {
+      "url": "https://registry.npmjs.org/@anthropic-ai/claude-code-linux-arm64/-/claude-code-linux-arm64-2.1.289.tgz",
+      "integrity": "sha512-kzZKgmlPjtxeCl3jR4eO+BVwy4hJq/pApB2vWFgrjAGR1jOphhS6GJaU1XjZYGbJITSoeaWxHnD1xQ2EWVZLHw==",
+      "license": "Proprietary; personal copy; excluded from public archive",
+      "unpacked_bytes": 245490250
+    }
+  }
+}

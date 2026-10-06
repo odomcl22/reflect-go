@@ -1,0 +1,89 @@
+{
+  "schema": 1,
+  "resolved_on": "2026-10-04",
+  "note": "Three compact models selected for 8, 12, 16 and 24 GiB hosts. Download status and physical-device qualification are recorded separately. Keep one copy in the shared Models directory, never in release archives. Earlier phase models are retained.",
+  "models": {
+    "bonsai-8b-q1": {
+      "name": "Bonsai 8B",
+      "quantization": "Q1_0",
+      "filename": "Bonsai-8B-Q1_0.gguf",
+      "repository": "prism-ml/Bonsai-8B-gguf",
+      "revision": "48516770dd04643643e9f9019a2a349cf26c5dbd",
+      "size_bytes": 1158654496,
+      "sha256": "284a335aa3fb2ced3b1b01fcb40b08aa783e3b70832767f0dd2e3fdfa134bd54",
+      "url": "https://huggingface.co/prism-ml/Bonsai-8B-gguf/resolve/48516770dd04643643e9f9019a2a349cf26c5dbd/Bonsai-8B-Q1_0.gguf",
+      "source": "https://huggingface.co/prism-ml/Bonsai-8B-gguf",
+      "license": "apache-2.0",
+      "screening": {
+        "context_tokens": 2048,
+        "estimated_bytes": 3032977500,
+        "first_passing_ram_tier_gib": 8,
+        "note": "Measured from the actual Reflect Go model screen: GGUF-derived KV estimate includes its 1.5x buffer margin. Half of physical RAM is budgeted. This is not measured process RAM or a fit guarantee."
+      }
+    },
+    "qwen35-4b-iq4-xs": {
+      "name": "Qwen3.5 4B",
+      "quantization": "IQ4_XS",
+      "filename": "Qwen3.5-4B-IQ4_XS.gguf",
+      "repository": "unsloth/Qwen3.5-4B-GGUF",
+      "revision": "e87f176479d0855a907a41277aca2f8ee7a09523",
+      "size_bytes": 2477053088,
+      "sha256": "658a9e7e406deb06d0179755e3c14f6a82915a4be4962a2f92a64d948d2e572f",
+      "url": "https://huggingface.co/unsloth/Qwen3.5-4B-GGUF/resolve/e87f176479d0855a907a41277aca2f8ee7a09523/Qwen3.5-4B-IQ4_XS.gguf",
+      "source": "https://huggingface.co/unsloth/Qwen3.5-4B-GGUF",
+      "license": "apache-2.0",
+      "screening": {
+        "context_tokens": 2048,
+        "estimated_bytes": 5367652662,
+        "first_passing_ram_tier_gib": 12,
+        "note": "Reflect Go 0.4.5 conservative estimate using half of physical RAM as budget, not measured memory use or a fit guarantee. Bonsai uses published Qwen3 metadata; other architectures use the application fallback KV estimate. Longer context increases this estimate."
+      }
+    },
+    "qwen35-9b-iq4-xs": {
+      "name": "Qwen3.5 9B",
+      "quantization": "IQ4_XS",
+      "filename": "Qwen3.5-9B-IQ4_XS.gguf",
+      "repository": "unsloth/Qwen3.5-9B-GGUF",
+      "revision": "3885219b6810b007914f3a7950a8d1b469d598a5",
+      "size_bytes": 5168653536,
+      "sha256": "7e918aeca06c52bcb528ea6b04b4ec957e75ee8c0a73138854c0dfcf371ea429",
+      "url": "https://huggingface.co/unsloth/Qwen3.5-9B-GGUF/resolve/3885219b6810b007914f3a7950a8d1b469d598a5/Qwen3.5-9B-IQ4_XS.gguf",
+      "source": "https://huggingface.co/unsloth/Qwen3.5-9B-GGUF",
+      "license": "apache-2.0",
+      "screening": {
+        "context_tokens": 2048,
+        "estimated_bytes": 8866733244,
+        "first_passing_ram_tier_gib": 24,
+        "note": "Reflect Go 0.4.5 conservative estimate using half of physical RAM as budget, not measured memory use or a fit guarantee. Bonsai uses published Qwen3 metadata; other architectures use the application fallback KV estimate. Longer context increases this estimate."
+      }
+    }
+  },
+  "machine_profiles": [
+    {
+      "ram_gib": 8,
+      "primary": "bonsai-8b-q1",
+      "chat_context": 2048,
+      "coding_note": "The current screen estimates Bonsai at 4.09 GiB for 8192 context, just over the 4 GiB budget on an 8 GiB machine. Use the 2048-context chat profile. Coding clients require at least 8192 context."
+    },
+    {
+      "ram_gib": 12,
+      "primary": "qwen35-4b-iq4-xs",
+      "chat_context": 2048,
+      "coding_trial_model": "bonsai-8b-q1",
+      "coding_trial_context": 8192
+    },
+    {
+      "ram_gib": 16,
+      "primary": "qwen35-4b-iq4-xs",
+      "chat_context": 4096,
+      "coding_trial_context": 8192
+    },
+    {
+      "ram_gib": 24,
+      "primary": "qwen35-9b-iq4-xs",
+      "chat_context": 4096,
+      "coding_trial_context": 8192
+    }
+  ],
+  "profile_note": "Starting settings from the existing conservative memory screen; physical device tests and coding reliability checks are still required. Short chat tests do not qualify harness tool use."
+}

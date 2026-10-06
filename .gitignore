@@ -1,0 +1,45 @@
+.build/
+dist/
+__pycache__/
+.DS_Store
+
+# Local packages and model weights are not source code.
+/releases/
+[Mm]odels/
+*.gguf
+*.safetensors
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.7z
+
+# Runtime profiles, credentials and raw test/conversation evidence stay local.
+state/
+/docs/evidence/
+*.log
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+provider-key
+ui-session.json
+auth.json
+.claude/
+.codex/
+.opencode/
+.ssh/
+
+# Separate website checkout, drafts and deployment metadata.
+/shoreline-site/
+/shoreline-history/
+.openai/
+
+# Host metadata and generated files.
+._*
+Thumbs.db
+Desktop.ini
+*.py[cod]
+node_modules/
+.venv/

@@ -1,0 +1,184 @@
+[
+  {
+    "url": "https://github.com/BurntSushi/ripgrep/releases/download/15.1.0/ripgrep-15.1.0-aarch64-apple-darwin.tar.gz",
+    "sha256": "378e973289176ca0c6054054ee7f631a065874a352bf43f0fa60ef079b6ba715",
+    "path": "harnesses/tools/macos-arm64/rg",
+    "name": "rg",
+    "platform": "macos-arm64"
+  },
+  {
+    "url": "https://github.com/openai/codex/releases/download/rust-v0.160.0/codex-app-server-aarch64-apple-darwin.tar.gz",
+    "sha256": "1e6e5bd7e248a366ef17475602d9fbc37b8ad38498f7cdc184023cd5c718e8c5",
+    "path": "harnesses/codex/macos-arm64/codex-app-server",
+    "name": "codex-app-server",
+    "platform": "macos-arm64"
+  },
+  {
+    "url": "https://github.com/openai/codex/releases/download/rust-v0.160.0/codex-code-mode-host-aarch64-apple-darwin.tar.gz",
+    "sha256": "dc70fbc76e9dcae5ae3d5424808c8e7c2df5e0db4ac827ddd4fbe339015aad75",
+    "path": "harnesses/codex/macos-arm64/codex-code-mode-host",
+    "name": "codex-code-mode-host",
+    "platform": "macos-arm64"
+  },
+  {
+    "url": "https://github.com/BurntSushi/ripgrep/releases/download/15.1.0/ripgrep-15.1.0-x86_64-apple-darwin.tar.gz",
+    "sha256": "64811cb24e77cac3057d6c40b63ac9becf9082eedd54ca411b475b755d334882",
+    "path": "harnesses/tools/macos-x64/rg",
+    "name": "rg",
+    "platform": "macos-x64"
+  },
+  {
+    "url": "https://github.com/openai/codex/releases/download/rust-v0.160.0/codex-app-server-x86_64-apple-darwin.tar.gz",
+    "sha256": "9c8b8f053b0aba693e566fbe42d60b4c0488efcb2f68863251b03e9b2729eeee",
+    "path": "harnesses/codex/macos-x64/codex-app-server",
+    "name": "codex-app-server",
+    "platform": "macos-x64"
+  },
+  {
+    "url": "https://github.com/openai/codex/releases/download/rust-v0.160.0/codex-code-mode-host-x86_64-apple-darwin.tar.gz",
+    "sha256": "b024eba366ec2e3b6734972a00df8ed9b7bf14e670579bc5ba18194612d9f441",
+    "path": "harnesses/codex/macos-x64/codex-code-mode-host",
+    "name": "codex-code-mode-host",
+    "platform": "macos-x64"
+  },
+  {
+    "url": "https://github.com/BurntSushi/ripgrep/releases/download/15.1.0/ripgrep-15.1.0-x86_64-pc-windows-msvc.zip",
+    "sha256": "124510b94b6baa3380d051fdf4650eaa80a302c876d611e9dba0b2e18d87493a",
+    "path": "harnesses/tools/windows-x64/rg.exe",
+    "name": "rg",
+    "platform": "windows-x64"
+  },
+  {
+    "url": "https://github.com/openai/codex/releases/download/rust-v0.160.0/codex-app-server-x86_64-pc-windows-msvc.exe.tar.gz",
+    "sha256": "be252c6e925b3d1994149dbf8c07091e314ecfa265770b13c03eac4f4bd87bd2",
+    "path": "harnesses/codex/windows-x64/codex-app-server.exe",
+    "name": "codex-app-server",
+    "platform": "windows-x64"
+  },
+  {
+    "url": "https://github.com/openai/codex/releases/download/rust-v0.160.0/codex-code-mode-host-x86_64-pc-windows-msvc.exe.tar.gz",
+    "sha256": "f66e614a1ef99d7b3b73df87967848cbc7d367a3d88277bf0975e361e40db368",
+    "path": "harnesses/codex/windows-x64/codex-code-mode-host.exe",
+    "name": "codex-code-mode-host",
+    "platform": "windows-x64"
+  },
+  {
+    "url": "https://github.com/openai/codex/releases/download/rust-v0.160.0/codex-command-runner-x86_64-pc-windows-msvc.exe.tar.gz",
+    "sha256": "03e6576e9c5cfda7814554f6504e512261fecc3db2e80e53d99c5cf9e92821c6",
+    "path": "harnesses/codex/windows-x64/codex-command-runner.exe",
+    "name": "codex-command-runner",
+    "platform": "windows-x64"
+  },
+  {
+    "url": "https://github.com/openai/codex/releases/download/rust-v0.160.0/codex-windows-sandbox-setup-x86_64-pc-windows-msvc.exe.tar.gz",
+    "sha256": "4de5d0d92939724a29a30a61473e53679331a9245311736714316afde38677f0",
+    "path": "harnesses/codex/windows-x64/codex-windows-sandbox-setup.exe",
+    "name": "codex-windows-sandbox-setup",
+    "platform": "windows-x64"
+  },
+  {
+    "url": "https://github.com/openai/codex/releases/download/rust-v0.160.0/codex-windows-sandbox-service-x86_64-pc-windows-msvc.exe.tar.gz",
+    "sha256": "d520c959212fa4f185c5bbc66195ee935149cb3dfc8c10908f6058490b3d2734",
+    "path": "harnesses/codex/windows-x64/codex-windows-sandbox-service.exe",
+    "name": "codex-windows-sandbox-service",
+    "platform": "windows-x64"
+  },
+  {
+    "url": "https://github.com/BurntSushi/ripgrep/releases/download/15.1.0/ripgrep-15.1.0-aarch64-pc-windows-msvc.zip",
+    "sha256": "00d931fb5237c9696ca49308818edb76d8eb6fc132761cb2a1bd616b2df02f8e",
+    "path": "harnesses/tools/windows-arm64/rg.exe",
+    "name": "rg",
+    "platform": "windows-arm64"
+  },
+  {
+    "url": "https://github.com/openai/codex/releases/download/rust-v0.160.0/codex-app-server-aarch64-pc-windows-msvc.exe.tar.gz",
+    "sha256": "5b76d9e93a4ee2ebba95dbca4020a46cf11fce1b19720c999df669fd6926ae2a",
+    "path": "harnesses/codex/windows-arm64/codex-app-server.exe",
+    "name": "codex-app-server",
+    "platform": "windows-arm64"
+  },
+  {
+    "url": "https://github.com/openai/codex/releases/download/rust-v0.160.0/codex-code-mode-host-aarch64-pc-windows-msvc.exe.tar.gz",
+    "sha256": "55bf22a63addb5b33d53276c9f415c01953f439a69404a876e4e76e9c03417fd",
+    "path": "harnesses/codex/windows-arm64/codex-code-mode-host.exe",
+    "name": "codex-code-mode-host",
+    "platform": "windows-arm64"
+  },
+  {
+    "url": "https://github.com/openai/codex/releases/download/rust-v0.160.0/codex-command-runner-aarch64-pc-windows-msvc.exe.tar.gz",
+    "sha256": "b460243cb626a9dd95835dc0d52f703db832bda564c7d9dc12c2c8fdc7d4ab5a",
+    "path": "harnesses/codex/windows-arm64/codex-command-runner.exe",
+    "name": "codex-command-runner",
+    "platform": "windows-arm64"
+  },
+  {
+    "url": "https://github.com/openai/codex/releases/download/rust-v0.160.0/codex-windows-sandbox-setup-aarch64-pc-windows-msvc.exe.tar.gz",
+    "sha256": "f8fcd6481be561d40b134ffa105cffbacd84e6d821e11c4a10945b52e4d71cf2",
+    "path": "harnesses/codex/windows-arm64/codex-windows-sandbox-setup.exe",
+    "name": "codex-windows-sandbox-setup",
+    "platform": "windows-arm64"
+  },
+  {
+    "url": "https://github.com/openai/codex/releases/download/rust-v0.160.0/codex-windows-sandbox-service-aarch64-pc-windows-msvc.exe.tar.gz",
+    "sha256": "647007d5600b1d43f1ddf4f628633aa556030712332dc6025b83d6b6fe175b04",
+    "path": "harnesses/codex/windows-arm64/codex-windows-sandbox-service.exe",
+    "name": "codex-windows-sandbox-service",
+    "platform": "windows-arm64"
+  },
+  {
+    "url": "https://github.com/BurntSushi/ripgrep/releases/download/15.1.0/ripgrep-15.1.0-x86_64-unknown-linux-musl.tar.gz",
+    "sha256": "1c9297be4a084eea7ecaedf93eb03d058d6faae29bbc57ecdaf5063921491599",
+    "path": "harnesses/tools/linux-x64/rg",
+    "name": "rg",
+    "platform": "linux-x64"
+  },
+  {
+    "url": "https://github.com/openai/codex/releases/download/rust-v0.160.0/codex-app-server-x86_64-unknown-linux-musl.tar.gz",
+    "sha256": "d0a05909836d4a73634641b89c7a62fd99c0978cdfe7ae9b8b631e9ee6d9da46",
+    "path": "harnesses/codex/linux-x64/codex-app-server",
+    "name": "codex-app-server",
+    "platform": "linux-x64"
+  },
+  {
+    "url": "https://github.com/openai/codex/releases/download/rust-v0.160.0/codex-code-mode-host-x86_64-unknown-linux-musl.tar.gz",
+    "sha256": "ac6cd6288f0e39f46a33eba1cfd37711651f14f33dbc73d6a1b82eb45e038cac",
+    "path": "harnesses/codex/linux-x64/codex-code-mode-host",
+    "name": "codex-code-mode-host",
+    "platform": "linux-x64"
+  },
+  {
+    "url": "https://github.com/openai/codex/releases/download/rust-v0.160.0/bwrap-x86_64-unknown-linux-musl.tar.gz",
+    "sha256": "1844535ea16d5454a6b5ee5df541c068ea8ddf1028ad3520255b16e05de3183d",
+    "path": "harnesses/codex/linux-x64/bwrap",
+    "name": "bwrap",
+    "platform": "linux-x64"
+  },
+  {
+    "url": "https://github.com/BurntSushi/ripgrep/releases/download/15.1.0/ripgrep-15.1.0-aarch64-unknown-linux-gnu.tar.gz",
+    "sha256": "2b661c6ef508e902f388e9098d9c4c5aca72c87b55922d94abdba830b4dc885e",
+    "path": "harnesses/tools/linux-arm64/rg",
+    "name": "rg",
+    "platform": "linux-arm64"
+  },
+  {
+    "url": "https://github.com/openai/codex/releases/download/rust-v0.160.0/codex-app-server-aarch64-unknown-linux-musl.tar.gz",
+    "sha256": "782581656b7c27ad23d2e5cf268bac5ad8a4112b149a2ad77ce97644ad4cddda",
+    "path": "harnesses/codex/linux-arm64/codex-app-server",
+    "name": "codex-app-server",
+    "platform": "linux-arm64"
+  },
+  {
+    "url": "https://github.com/openai/codex/releases/download/rust-v0.160.0/codex-code-mode-host-aarch64-unknown-linux-musl.tar.gz",
+    "sha256": "94066fdf13ffecd2f58776ec5cb8fc3040283a642e3d6ff25c5d82048c41038e",
+    "path": "harnesses/codex/linux-arm64/codex-code-mode-host",
+    "name": "codex-code-mode-host",
+    "platform": "linux-arm64"
+  },
+  {
+    "url": "https://github.com/openai/codex/releases/download/rust-v0.160.0/bwrap-aarch64-unknown-linux-musl.tar.gz",
+    "sha256": "ca90234c025185a8e9c3d002707da862d16042d94ff3e84fc63dd8fdcc425035",
+    "path": "harnesses/codex/linux-arm64/bwrap",
+    "name": "bwrap",
+    "platform": "linux-arm64"
+  }
+]

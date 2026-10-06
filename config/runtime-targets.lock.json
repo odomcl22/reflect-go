@@ -1,0 +1,159 @@
+{
+  "build": "b11146",
+  "source_revision": "7fe450e19305b828c199d602c23a8337aaa1f03b",
+  "targets": {
+    "macos-arm64-metal": {
+      "url": "https://github.com/ggml-org/llama.cpp/releases/download/b11146/llama-b11146-bin-macos-arm64.tar.gz",
+      "filename": "llama-b11146-bin-macos-arm64.tar.gz",
+      "sha256": "1ad3f9eff80edb9dbef4259ad564d1720612ef7eea48fa4afed0e54f5f3d5711",
+      "bytes": 11189714
+    },
+    "macos-x64-metal": {
+      "url": "https://github.com/ggml-org/llama.cpp/releases/download/b11146/llama-b11146-bin-macos-x64.tar.gz",
+      "filename": "llama-b11146-bin-macos-x64.tar.gz",
+      "sha256": "305f0e3a17d2c01eb205cd0a62128357f1ec3b55329cb084d94e5ec0115d7a3b",
+      "bytes": 11237237
+    },
+    "linux-x64-cpu": {
+      "url": "https://github.com/ggml-org/llama.cpp/releases/download/b11146/llama-b11146-bin-ubuntu-x64.tar.gz",
+      "filename": "llama-b11146-bin-ubuntu-x64.tar.gz",
+      "sha256": "c150306eb16b5ab696f76a8bdf810c35fd98a24e82158742e6fa28f420ff8410",
+      "bytes": 16998357
+    },
+    "linux-arm64-cpu": {
+      "url": "https://github.com/ggml-org/llama.cpp/releases/download/b11146/llama-b11146-bin-ubuntu-arm64.tar.gz",
+      "filename": "llama-b11146-bin-ubuntu-arm64.tar.gz",
+      "sha256": "4aeda6fe68831547e49b7fa87607383ca5352b3d72ca5f70d52ed265f58c131f",
+      "bytes": 13598346
+    },
+    "linux-x64-vulkan": {
+      "url": "https://github.com/ggml-org/llama.cpp/releases/download/b11146/llama-b11146-bin-ubuntu-vulkan-x64.tar.gz",
+      "filename": "llama-b11146-bin-ubuntu-vulkan-x64.tar.gz",
+      "sha256": "d3ce40fce7403cc93bcf5718fc46c6efb61ed9709f8e5d9f10c86bf0e30e8fb3",
+      "bytes": 30598492
+    },
+    "linux-arm64-vulkan": {
+      "url": "https://github.com/ggml-org/llama.cpp/releases/download/b11146/llama-b11146-bin-ubuntu-vulkan-arm64.tar.gz",
+      "filename": "llama-b11146-bin-ubuntu-vulkan-arm64.tar.gz",
+      "sha256": "5dcebe3ecbcb43a1ed85e3284453f9edf54dcca833e1cb1f54b4022b753c1da5",
+      "bytes": 24410274
+    },
+    "windows-x64-cpu": {
+      "url": "https://github.com/ggml-org/llama.cpp/releases/download/b11146/llama-b11146-bin-win-cpu-x64.zip",
+      "filename": "llama-b11146-bin-win-cpu-x64.zip",
+      "sha256": "14cf1303ca9ac3abd94816850532f9f9a69ac66fbaca3776fc6f9061c2fac1d1",
+      "bytes": 18560055
+    },
+    "windows-arm64-cpu": {
+      "url": "https://github.com/ggml-org/llama.cpp/releases/download/b11146/llama-b11146-bin-win-cpu-arm64.zip",
+      "filename": "llama-b11146-bin-win-cpu-arm64.zip",
+      "sha256": "1727d241f3bf6d27360e984e851cf013928fd655bf89f8628e70da027f377b7d",
+      "bytes": 12034624
+    },
+    "windows-x64-vulkan": {
+      "url": "https://github.com/ggml-org/llama.cpp/releases/download/b11146/llama-b11146-bin-win-vulkan-x64.zip",
+      "filename": "llama-b11146-bin-win-vulkan-x64.zip",
+      "sha256": "55a378aa095b466979d85075234f66d7655c7a7483222af0c006c0e55b4d7bd6",
+      "bytes": 32127004
+    }
+  },
+  "build_toolchain": {
+    "version": "go1.27.1",
+    "filename": "go1.27.1.darwin-arm64.tar.gz",
+    "url": "https://go.dev/dl/go1.27.1.darwin-arm64.tar.gz",
+    "sha256": "ee215d57e0ec269c60cc9ceca68e6bda321ba9ee5afe24f4b0988703c2d87d12"
+  },
+  "linux_libraries": [
+    {
+      "name": "libgomp1",
+      "arch": "amd64",
+      "version": "14.2.0-4ubuntu2~24.04.1",
+      "filename": "libgomp1_14.2.0-4ubuntu2~24.04.1_amd64.deb",
+      "url": "https://archive.ubuntu.com/ubuntu/pool/main/g/gcc-14/libgomp1_14.2.0-4ubuntu2~24.04.1_amd64.deb",
+      "sha256": "e8a95ec58125b4933597f30ff56c2ae10edf90f287262e366d4b6edea3019144",
+      "source": "https://archive.ubuntu.com/ubuntu/pool/main/g/gcc-14/"
+    },
+    {
+      "name": "libstdc++6",
+      "arch": "amd64",
+      "version": "14.2.0-4ubuntu2~24.04.1",
+      "filename": "libstdc++6_14.2.0-4ubuntu2~24.04.1_amd64.deb",
+      "url": "https://archive.ubuntu.com/ubuntu/pool/main/g/gcc-14/libstdc++6_14.2.0-4ubuntu2~24.04.1_amd64.deb",
+      "sha256": "a51f8de7829211db961a31f02158058ad1a95f92ac6d0a5dff6350e2821c54c0",
+      "source": "https://archive.ubuntu.com/ubuntu/pool/main/g/gcc-14/"
+    },
+    {
+      "name": "libgcc-s1",
+      "arch": "amd64",
+      "version": "14.2.0-4ubuntu2~24.04.1",
+      "filename": "libgcc-s1_14.2.0-4ubuntu2~24.04.1_amd64.deb",
+      "url": "https://archive.ubuntu.com/ubuntu/pool/main/g/gcc-14/libgcc-s1_14.2.0-4ubuntu2~24.04.1_amd64.deb",
+      "sha256": "aa7fadbe33b78bcf99885318040601c550c208929565b179891d9a3cc2aa68cd",
+      "source": "https://archive.ubuntu.com/ubuntu/pool/main/g/gcc-14/"
+    },
+    {
+      "name": "libgomp1",
+      "arch": "arm64",
+      "version": "14.2.0-4ubuntu2~24.04.1",
+      "filename": "libgomp1_14.2.0-4ubuntu2~24.04.1_arm64.deb",
+      "url": "https://ports.ubuntu.com/ubuntu-ports/pool/main/g/gcc-14/libgomp1_14.2.0-4ubuntu2~24.04.1_arm64.deb",
+      "sha256": "cd49d2e8834d41a6618f097b678980defeebc47271bc7c5aa8ea2c2f1a53b7a6",
+      "source": "https://archive.ubuntu.com/ubuntu/pool/main/g/gcc-14/"
+    },
+    {
+      "name": "libstdc++6",
+      "arch": "arm64",
+      "version": "14.2.0-4ubuntu2~24.04.1",
+      "filename": "libstdc++6_14.2.0-4ubuntu2~24.04.1_arm64.deb",
+      "url": "https://ports.ubuntu.com/ubuntu-ports/pool/main/g/gcc-14/libstdc++6_14.2.0-4ubuntu2~24.04.1_arm64.deb",
+      "sha256": "f84a05ac45a6884109b6527e911081a38263b89e042fc94a338cf975f61a330c",
+      "source": "https://archive.ubuntu.com/ubuntu/pool/main/g/gcc-14/"
+    },
+    {
+      "name": "libgcc-s1",
+      "arch": "arm64",
+      "version": "14.2.0-4ubuntu2~24.04.1",
+      "filename": "libgcc-s1_14.2.0-4ubuntu2~24.04.1_arm64.deb",
+      "url": "https://ports.ubuntu.com/ubuntu-ports/pool/main/g/gcc-14/libgcc-s1_14.2.0-4ubuntu2~24.04.1_arm64.deb",
+      "sha256": "5b191f79ad985a9a653dbba45214619f729f9178a9bdf92f7c68db06c50d070b",
+      "source": "https://archive.ubuntu.com/ubuntu/pool/main/g/gcc-14/"
+    },
+    {
+      "name": "libssl3t64",
+      "arch": "amd64",
+      "version": "3.0.13-0ubuntu3.16",
+      "filename": "libssl3t64_3.0.13-0ubuntu3.16_amd64.deb",
+      "url": "https://archive.ubuntu.com/ubuntu/pool/main/o/openssl/libssl3t64_3.0.13-0ubuntu3.16_amd64.deb",
+      "sha256": "219f43b1cd836a4da550938db5fda93160d269d39a4edcf1f1ce698a470db797",
+      "source": "https://archive.ubuntu.com/ubuntu/pool/main/o/openssl/"
+    },
+    {
+      "name": "libssl3t64",
+      "arch": "arm64",
+      "version": "3.0.13-0ubuntu3.16",
+      "filename": "libssl3t64_3.0.13-0ubuntu3.16_arm64.deb",
+      "url": "https://ports.ubuntu.com/ubuntu-ports/pool/main/o/openssl/libssl3t64_3.0.13-0ubuntu3.16_arm64.deb",
+      "sha256": "8b2dff5ee02f3e1eaaf8106ff372c5ba61b88ee57b7658e163a2de0b90b4956e",
+      "source": "https://archive.ubuntu.com/ubuntu/pool/main/o/openssl/"
+    }
+  ],
+  "linux_license_package": {
+    "name": "gcc-14-base",
+    "filename": "gcc-14-base_14.2.0-4ubuntu2~24.04.1_amd64.deb",
+    "url": "https://archive.ubuntu.com/ubuntu/pool/main/g/gcc-14/gcc-14-base_14.2.0-4ubuntu2~24.04.1_amd64.deb",
+    "sha256": "b95c172411a7fdae70307cf33a9f5320ba5e056b556454543dd5b679d5ce1c4f",
+    "version": "14.2.0-4ubuntu2~24.04.1"
+  },
+  "windows_build_toolchain": {
+    "version": "20260922",
+    "filename": "llvm-mingw-20260922-ucrt-macos-universal.tar.xz",
+    "url": "https://github.com/mstorsjo/llvm-mingw/releases/download/20260922/llvm-mingw-20260922-ucrt-macos-universal.tar.xz",
+    "sha256": "52e5f5a7b131021d0c39a37a38fa380a1da7885cd04bd61afd0cd4ecfb8bc1f3"
+  },
+  "windows_cpu_source_build": {
+    "revision": "7fe450e19305b828c199d602c23a8337aaa1f03b",
+    "builder": "scripts/build_windows_runtime.py",
+    "description": "Static LLVM-MinGW CPU engines replace the upstream MSVC CPU binaries. Windows OS/UCRT dependencies only. See per-pack BUILD.json.",
+    "upstream_archive_role": "Reference artifacts; not the packaged CPU engine binaries."
+  }
+}
