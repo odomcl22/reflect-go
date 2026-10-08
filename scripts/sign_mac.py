@@ -129,15 +129,14 @@ def update_manifest(bundle):
     print(f"Manifest updated for {changed} re-signed files", flush=True)
 
 
-def package(bundle, dmg, identity, profile):
+def package(bundle, dmg, identity, notary):
     if dmg.exists():
         raise SystemExit(f"DMG exists: {dmg}")
     subprocess.run(["/usr/bin/hdiutil", "create", "-volname", "Reflect Go Installer", "-srcfolder", str(bundle),
                     "-format", "UDZO", "-fs", "HFS+", str(dmg)], check=True)
     subprocess.run(["/usr/bin/codesign", "--force", "--timestamp", "--sign", identity, str(dmg)], check=True)
-    if profile:
-        subprocess.run(["/usr/bin/xcrun", "notarytool", "submit", str(dmg), "--keychain-profile", profile,
-                        "--wait"], check=True)
+    if notary:
+        subprocess.run(["/usr/bin/xcrun", "notarytool", "submit", str(dmg), *notary, "--wait"], check=True)
         subprocess.run(["/usr/bin/xcrun", "stapler", "staple", str(dmg)], check=True)
         subprocess.run(["/usr/sbin/spctl", "--assess", "--type", "open", "--context",
                         "context:primary-signature", "-vv", str(dmg)], check=True)
@@ -153,14 +152,26 @@ def main():
                    help="Leave the vendor Codex/Claude/OpenCode packs out of the signed copy")
     p.add_argument("--dmg", type=Path, help="Also build and sign a disk image")
     p.add_argument("--notary-profile", help="notarytool keychain profile; notarizes and staples the DMG")
+    p.add_argument("--notary-key", type=Path,
+                   help="App Store Connect API key file (.p8); use instead of a keychain profile")
+    p.add_argument("--notary-key-id")
+    p.add_argument("--notary-issuer")
     a = p.parse_args()
-    if a.notary_profile and not a.dmg:
-        p.error("--notary-profile requires --dmg")
+    notary = None
+    if a.notary_profile:
+        notary = ["--keychain-profile", a.notary_profile]
+    elif a.notary_key:
+        if not (a.notary_key_id and a.notary_issuer):
+            p.error("--notary-key requires --notary-key-id and --notary-issuer")
+        notary = ["--key", str(a.notary_key.expanduser()), "--key-id", a.notary_key_id,
+                  "--issuer", a.notary_issuer]
+    if notary and not a.dmg:
+        p.error("notarization requires --dmg")
     stage(a.source, a.staging, a.exclude_client_packs)
     sign(a.staging, a.identity)
     update_manifest(a.staging)
     if a.dmg:
-        package(a.staging, a.dmg, a.identity, a.notary_profile)
+        package(a.staging, a.dmg, a.identity, notary)
 
 
 if __name__ == "__main__":
