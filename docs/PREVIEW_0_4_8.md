@@ -8,6 +8,8 @@ Open Reflect Go, then choose your app. Project folder and offered models are opt
 - **ChatGPT / Codex Desktop:** adds a Reflect Go model catalog and a local Responses router. Existing account credentials are preserved. Local model requests stay local and never fall back to a cloud model. Selecting an existing cloud model still uses its normal provider and account. Start a fresh conversation when switching providers; local remote-compaction is not supported.
 - **OpenCode Desktop:** adds a `reflect_go` provider to its JSON/JSONC configuration. Existing providers, comments, permissions and account settings are retained. A custom environment or project configuration can override global defaults.
 
+Native desktop apps keep their own project picker in this preview; the project-folder field applies to CLI/web connectors.
+
 Installed desktop apps are required. These are preview adapters, not bundled desktop applications. macOS app discovery supports Claude, ChatGPT and OpenCode in Applications. Windows discovery supports ordinary per-user/Program Files installations; Microsoft Store installations are not yet qualified. Linux desktop support is limited to an installed `opencode-desktop` executable.
 
 ## Disconnect without signing out

@@ -4,9 +4,18 @@
 Claude binaries are excluded pending redistribution permission. An optional pinned
 starter model provides basic chat. No uploads are performed by this script.
 """
-import argparse, hashlib, json, zipfile
+import argparse, hashlib, json, re, zipfile
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
+
+def public_build_metadata(value):
+    """Build flags are provenance, not a reason to publish a builder's home path."""
+    if isinstance(value, str):
+        value = re.sub(r'/(?:Users|home)/[^/\s]+', '<BUILD_HOME>', value)
+        return re.sub(r'[A-Za-z]:\\Users\\[^\\\s]+', '<BUILD_HOME>', value)
+    if isinstance(value, list):return [public_build_metadata(v) for v in value]
+    if isinstance(value, dict):return {k:public_build_metadata(v) for k,v in value.items()}
+    return value
 
 def selected(rel, platform):
     parts=Path(rel).parts
@@ -40,6 +49,9 @@ def package(bundle,output,starter=None,platform=None):
             if hashlib.file_digest(f,'sha256').hexdigest()!=manifest[rel]:raise SystemExit('Integrity mismatch: '+rel)
         members[rel]=p
     replacements={}
+    for name, path in members.items():
+        if name.endswith('/BUILD.json'):
+            replacements[name]=(json.dumps(public_build_metadata(json.loads(path.read_text())),indent=2)+'\n').encode()
     for name in ('harnesses/installed.json','runtime-targets.json'):
         if name in members:
             value=json.loads(members[name].read_text())

@@ -388,3 +388,37 @@ func TestDesktopModelPickerDoesNotBlockDisconnect(t *testing.T) {
 		}
 	}
 }
+
+func TestClaudeDesktopLiveProtocol(t *testing.T) {
+	engine := os.Getenv("REFLECT_GO_TEST_ENGINE_BASE")
+	if engine == "" {
+		t.Skip("set REFLECT_GO_TEST_ENGINE_BASE and key file")
+	}
+	keyBytes, err := os.ReadFile(os.Getenv("REFLECT_GO_TEST_ENGINE_KEY_FILE"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	key := strings.TrimSpace(string(keyBytes))
+	base, closeProxy, err := startClaudeDesktopProxy(Connection{Base: engine, Context: 49152}, key, []ClientModel{{ID: "reflect-test", Name: "Local test model"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer closeProxy()
+	req, err := http.NewRequest("POST", base+"/v1/messages", strings.NewReader(`{"model":"claude-fable-5","messages":[{"role":"user","content":"Reply exactly OK."}],"max_tokens":64,"thinking":{"type":"adaptive"},"output_config":{"effort":"max"}}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+key)
+	client := &http.Client{Timeout: 120 * time.Second}
+	response, err := client.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer response.Body.Close()
+	body, _ := io.ReadAll(response.Body)
+	if response.StatusCode != 200 || !bytes.Contains(body, []byte(`"type":"text"`)) || !bytes.Contains(body, []byte("OK")) {
+		t.Fatalf("Claude protocol response failed: %d %s", response.StatusCode, body)
+	}
+	t.Log("Claude desktop alias and effort normalization returned a real local reply")
+}

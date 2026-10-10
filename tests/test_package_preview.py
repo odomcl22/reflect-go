@@ -17,7 +17,7 @@ class PackageTests(unittest.TestCase):
  def test_platform_archive_has_flat_launcher_matching_metadata_and_model_location(self):
   with tempfile.TemporaryDirectory() as tmp:
    root=Path(tmp)/'Phase';root.mkdir()
-   files={'bin/windows-x64/reflectgo.exe':b'win','bin/macos-arm64/reflectgo':b'mac','START Reflect Go.exe':b'launcher','Reflect Go.app/Contents/MacOS/ReflectGo':b'app',
+   files={'runtime/windows-x64-cpu/BUILD.json':json.dumps({'flags':['-DCMAKE_C_COMPILER=/Users/private-builder/tools/clang']}).encode(),'bin/windows-x64/reflectgo.exe':b'win','bin/macos-arm64/reflectgo':b'mac','START Reflect Go.exe':b'launcher','Reflect Go.app/Contents/MacOS/ReflectGo':b'app',
     'harnesses/codex/windows-x64/codex.exe':b'codex','harnesses/codex/macos-arm64/codex':b'other',
     'config/portableai.json':json.dumps({'models_directory':'../Models','provider_model':'private.gguf'}).encode(),
     'harnesses/installed.json':json.dumps({'codex/windows-x64':{'path':'harnesses/codex/windows-x64/codex.exe'},'codex/macos-arm64':{'path':'harnesses/codex/macos-arm64/codex'}}).encode()}
@@ -27,6 +27,7 @@ class PackageTests(unittest.TestCase):
    output=Path(tmp)/'windows.zip';module.package(root,output,platform='windows')
    with zipfile.ZipFile(output) as z:
     self.assertIn('Reflect Go/START Reflect Go.exe',z.namelist())
+    metadata=z.read('Reflect Go/runtime/windows-x64-cpu/BUILD.json');self.assertNotIn(b'private-builder',metadata);self.assertIn(b'<BUILD_HOME>',metadata)
     self.assertFalse(any('macos' in n or '.app/' in n for n in z.namelist()))
     config=json.loads(z.read('Reflect Go/config/portableai.json'));self.assertEqual(config['models_directory'],'Models');self.assertNotIn('provider_model',config)
     installed=json.loads(z.read('Reflect Go/harnesses/installed.json'));self.assertEqual(list(installed),['codex/windows-x64'])
