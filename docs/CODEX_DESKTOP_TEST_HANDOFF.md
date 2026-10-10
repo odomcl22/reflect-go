@@ -1,5 +1,7 @@
 # Codex Desktop test handoff
 
+> **Status, 2026-10-10:** steps 1–3, 5 (picker shows the local model) and 10 (Disconnect restoration) passed after three connect fixes. Steps 4 and 6–9, 11 and the tool test are still open. See [the results](PREVIEW_0_4_8_VALIDATION.md#native-codex-desktop-test-from-claude-code-2026-10-10). When resuming, select a disposable project in step 4 **before** sending anything. ChatGPT defaults to the last project, and this account's Codex profile runs without approvals. Expect ChatGPT's own *Quit ChatGPT?* confirmation on every restart; answer it within 45 seconds.
+
 Finish the native Codex desktop connection test from a separate controller, such as Claude Code. Test the existing implementation first; fix reproducible failures without replacing the working desktop adapters.
 
 ## Starting point

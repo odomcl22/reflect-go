@@ -396,6 +396,12 @@ type desktopChangeActions struct {
 // Called only after model/engine validation and a reversible profile plan exist.
 // Disconnect reopens only a desktop app that was already running; connect opens
 // it deliberately. Cancelling after an applied connection rolls that edit back.
+// A graceful quit can wait on the app's own confirmation (ChatGPT asks before
+// closing when scheduled tasks exist), so allow time for the person to answer.
+// Stay under WebKit's 60-second request limit: if the page's request expires
+// first, the change is cancelled with only "Load failed" shown.
+const desktopQuitWait = 45 * time.Second
+
 func runDesktopChange(ctx context.Context, confirmRestart, openWhenClosed bool, actions desktopChangeActions) error {
 	if err := ctx.Err(); err != nil {
 		return err
@@ -411,7 +417,7 @@ func runDesktopChange(ctx context.Context, confirmRestart, openWhenClosed bool, 
 		return err
 	}
 	if running {
-		quitCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
+		quitCtx, cancel := context.WithTimeout(ctx, desktopQuitWait)
 		err = actions.Quit(quitCtx)
 		cancel()
 		if err != nil {

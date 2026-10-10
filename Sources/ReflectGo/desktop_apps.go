@@ -8,7 +8,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"regexp"
 	"runtime"
 	"strings"
 	"time"
@@ -64,15 +63,21 @@ func desktopRunning(id string) (bool, error) {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Second)
 	defer cancel()
+	if runtime.GOOS == "darwin" {
+		// Ask by bundle identifier, the same identity quitDesktop uses. Matching
+		// command lines (pgrep -f) also matched any unrelated process that merely
+		// mentioned the app's path, which held a finished quit open until timeout.
+		out, err := exec.CommandContext(ctx, "/usr/bin/osascript", "-e", `application id "`+s.Bundle+`" is running`).Output()
+		if err != nil {
+			return false, fmt.Errorf("could not check whether %s is running", s.Name)
+		}
+		return strings.TrimSpace(string(out)) == "true", nil
+	}
 	var cmd *exec.Cmd
 	if runtime.GOOS == "windows" {
 		cmd = exec.CommandContext(ctx, "powershell.exe", "-NoProfile", "-NonInteractive", "-Command", `if (Get-Process -Name '`+s.Executable+`' -ErrorAction SilentlyContinue) { exit 0 } else { exit 1 }`)
 	} else {
-		pattern := regexp.QuoteMeta(s.Name + ".app/Contents/MacOS/" + s.Executable)
-		if runtime.GOOS == "linux" {
-			pattern = "opencode-desktop"
-		}
-		cmd = exec.CommandContext(ctx, "pgrep", "-f", pattern)
+		cmd = exec.CommandContext(ctx, "pgrep", "-f", "opencode-desktop")
 	}
 	err := cmd.Run()
 	if err == nil {
@@ -108,7 +113,7 @@ func quitDesktop(ctx context.Context, id string) error {
 		}
 		select {
 		case <-ctx.Done():
-			return fmt.Errorf("%s is still open; its work was not force-closed", s.Name)
+			return fmt.Errorf("%s is still open; if it asked to confirm quitting, answer it and retry. Its work was not force-closed", s.Name)
 		case <-time.After(200 * time.Millisecond):
 		}
 	}

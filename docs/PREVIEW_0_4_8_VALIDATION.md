@@ -25,6 +25,36 @@ The full Go suite passes, and the changed backend compiles for macOS, Windows an
 
 The [Codex Desktop test handoff](CODEX_DESKTOP_TEST_HANDOFF.md) records the exact native test steps, existing implementation, and isolated app-server diagnostic for an independent tester.
 
+### Native Codex Desktop test from Claude Code, 2026-10-10
+
+Controller: Claude Code, outside the target app. Package: local `dist/Reflect Go/Phase 4.8` (`0.4.8-preview`, backend containing `196b7be` plus the fixes below). Model: Qwen3-4B-Instruct-2507-Q4_K_M only, 49,152 context, Metal, Apple M1 16 GiB. Target: `/Applications/ChatGPT.app` (`com.openai.codex`). It started at 26.1002.52244 and installed a pending Sparkle update to **26.1007.21159** during the first restart, so the connection results below are for 26.1007.21159.
+
+**Connect: three failures found, fixed and retested.**
+
+| Attempt | Observed | Cause | Fix |
+| --- | --- | --- | --- |
+| 1 | `ChatGPT is still open; its work was not force-closed`. Nothing applied. | ChatGPT shows its own *Quit ChatGPT? Scheduled tasks won't run while ChatGPT is closed* confirmation when scheduled tasks exist. Reflect Go waited only 15 seconds for a graceful quit. | Quit wait raised; the error now says to answer the app's quit confirmation. |
+| 2 | `Load failed`. ChatGPT quit after the confirmation, but nothing was applied and it stayed closed. | The quit was confirmed about 70 seconds after the request, past WebKit's 60-second request limit in the native window. The dropped request cancelled the server-side change. | Quit wait set to 45 seconds, below the web view limit, so the person gets a clear error instead. |
+| 3 | `ChatGPT is still open; if it asked to confirm quitting…` although ChatGPT had already exited. | The running check used `pgrep -f`, which matches any process whose command line merely mentions `ChatGPT.app/Contents/MacOS/ChatGPT`. Here that was the tester's own monitor loop; a log viewer or editor would do the same. | macOS now asks by bundle identifier (`application id … is running`), the same identity used to quit. |
+| 4 | **Passed.** A decoy process mentioning the path was deliberately kept running. The quit confirmation was answered, ChatGPT restarted, the restore journal was created, and Reflect Go reported the desktop open with local models. | — | — |
+
+Regression tests added: `TestDesktopQuitAllowsTimeForAppConfirmation` (the wait is ≥30 s and <60 s) and `TestDesktopRunningIgnoresProcessesMentioningAppPath` (macOS, with a decoy process). Full Go suite and `go vet` pass for macOS, Windows and Linux. The Phase 4.8 Mac launchers were rebuilt, Developer ID signed (`reflectgo-desktop-fix`), and their manifest entries updated. Integrity check: 425 files verified. The prior binaries are kept privately outside Git.
+
+**Profile changes while connected.** Semantically (parsed TOML), only the journaled keys changed: `model` (`gpt-6.1-sol` → the `reflect-…` ID), `model_catalog_json` and `openai_base_url` (private loopback URL, redacted). `reflect-go-models.json` was created. `auth.json` was byte-identical throughout. ChatGPT's update separately changed its own version strings under `mcp_servers.node_repl.env`. Reflect Go's TOML writer re-serializes the whole file (key order, quote style); values are preserved, and the original file had no comments. Note that formatting churn as cosmetic.
+
+**Native picker.** After the restart, a new Codex task's model picker displayed **Reflect Go · Qwen3-4B-Instruct-2507-Q4…** as the selection.
+
+**Disconnect: passed.** *Restore previous settings* asked to restart ChatGPT. Its quit confirmation was answered, and it reopened signed in with existing chats. The model was back to `gpt-6.1-sol`, the catalog and base-URL keys were removed, `reflect-go-models.json` was removed, the restore journal was removed, `auth.json` was unchanged, and the parsed config matched the original apart from ChatGPT's own update.
+
+**Not yet tested** (none should be read as passing):
+- the visible `CODEX LOCAL OK` reply
+- the second warm reply
+- cancellation
+- reconnect followed by Quit-time restoration
+- the optional tool test
+
+ChatGPT defaulted the new task to the real *Reflect On The Go* repository, and this account's Codex profile runs with `approval_policy = "never"` and `sandbox_mode = "danger-full-access"`. Sending local-model prompts there was judged unsafe. Choosing a disposable folder needs the system folder picker, which the background controller cannot operate, and full-screen control was not approved during the session. The connection was disconnected rather than left pointing scheduled tasks at the local model. Resume at handoff step 4 with a disposable project selected.
+
 ## Completed checks
 
 - Complete Go test suite passed. New tests cover local/native routing, gzip/zstd requests, account-header isolation, context limits, bounded Claude output, JSON/TOML profile restoration, JSONC comments, temporary credential cleanup and concurrent-setting protection. Existing restart consent, cancellation and rollback tests also pass.

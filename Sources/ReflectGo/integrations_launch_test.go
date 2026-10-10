@@ -8,6 +8,7 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestIntegrationModelsPreserveSharedSelectionAndDefault(t *testing.T) {
@@ -44,6 +45,23 @@ func TestDesktopChangeRequiresRestartConfirmationBeforeMutations(t *testing.T) {
 	}
 	if !reflect.DeepEqual(events, []string{"quit", "apply", "open"}) {
 		t.Fatal(events)
+	}
+}
+func TestDesktopQuitAllowsTimeForAppConfirmation(t *testing.T) {
+	var remaining time.Duration
+	actions := desktopChangeActions{Running: func() (bool, error) { return true, nil }, Quit: func(ctx context.Context) error {
+		deadline, _ := ctx.Deadline()
+		remaining = time.Until(deadline)
+		return nil
+	}, Apply: func() error { return nil }, Open: func(context.Context) error { return nil }}
+	if err := runDesktopChange(context.Background(), true, true, actions); err != nil {
+		t.Fatal(err)
+	}
+	if remaining < 30*time.Second {
+		t.Fatal("quit wait too short for a desktop app's own quit confirmation:", remaining)
+	}
+	if remaining >= time.Minute {
+		t.Fatal("quit wait outlasts the web view's 60-second request limit:", remaining)
 	}
 }
 func TestDesktopDisconnectDoesNotOpenClosedApp(t *testing.T) {
