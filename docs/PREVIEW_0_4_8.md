@@ -28,6 +28,6 @@ Extract the entire platform ZIP. Keep the launcher next to `bin`, `runtime`, `ha
 
 **Reflect Go** includes no model weights. Use Model library to download/import a GGUF. **Starter Pack** adds one small Qwen2.5 1.5B demonstration model for simple chat. That model is not suitable for the desktop adapters' 49K context; use a compatible larger-context model such as Qwen3 4B Instruct 2507 and sufficient memory for desktop work.
 
-Public archives include portable Codex and OpenCode CLI packs. Proprietary Claude CLI binaries are excluded pending redistribution permission; installed Claude Desktop can still connect. Personal builds may include separately obtained Claude CLI packs. No Plus tier.
+Both downloads include portable Codex and OpenCode CLI clients. Claude Code CLI requires separately obtained software; it is not included in these packages. To use Claude Desktop, connect an existing installation on your computer.
 
 Mac public downloads are Developer ID signed and Apple-notarized. Windows preview executables are unsigned and may trigger SmartScreen. Desktop workflow qualification and physical Windows/Linux checks are listed in [validation](PREVIEW_0_4_8_VALIDATION.md).
