@@ -2,18 +2,15 @@ package main
 
 import (
 	"bytes"
-	"context"
 	"crypto/subtle"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"net"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -94,6 +91,23 @@ func (p *claudeDesktopProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	body["model"], _ = json.Marshal(id)
+	if r.URL.Path == "/v1/messages" {
+		var requested int
+		_ = json.Unmarshal(body["max_tokens"], &requested)
+		if requested <= 0 || requested > 4096 {
+			body["max_tokens"] = json.RawMessage("4096")
+		}
+		delete(body, "thinking") // These local text models do not implement Claude's effort protocol.
+		var output map[string]json.RawMessage
+		if json.Unmarshal(body["output_config"], &output) == nil {
+			delete(output, "effort")
+			if len(output) == 0 {
+				delete(body, "output_config")
+			} else {
+				body["output_config"], _ = json.Marshal(output)
+			}
+		}
+	}
 	data, _ := json.Marshal(body)
 	r.Body = io.NopCloser(bytes.NewReader(data))
 	r.ContentLength = int64(len(data))
@@ -130,6 +144,9 @@ func startClaudeDesktopProxy(c Connection, key string, models []ClientModel) (st
 }
 func claudeProfilePaths(home string) (normal, third, meta, profile string) {
 	base := filepath.Join(home, "Library", "Application Support")
+	if runtime.GOOS == "windows" {
+		base = filepath.Join(home, "AppData", "Roaming")
+	}
 	normal = filepath.Join(base, "Claude", "claude_desktop_config.json")
 	third = filepath.Join(base, "Claude-3p", "claude_desktop_config.json")
 	meta = filepath.Join(base, "Claude-3p", "configLibrary", "_meta.json")
@@ -208,52 +225,4 @@ func restoreClaudeProfile(root string) error {
 		}
 	}
 	return restoreProfileJournal(path, host, home)
-}
-func claudeDesktopApp() string {
-	if runtime.GOOS != "darwin" {
-		return ""
-	}
-	home, _ := os.UserHomeDir()
-	for _, p := range []string{"/Applications/Claude.app", filepath.Join(home, "Applications", "Claude.app")} {
-		if s, e := os.Stat(p); e == nil && s.IsDir() {
-			return p
-		}
-	}
-	return ""
-}
-func claudeDesktopRunning() (bool, error) {
-	if runtime.GOOS != "darwin" {
-		return false, nil
-	}
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	defer cancel()
-	err := exec.CommandContext(ctx, "/usr/bin/pgrep", "-f", "Claude.app/Contents/MacOS/Claude").Run()
-	if err == nil {
-		return true, nil
-	}
-	var exit *exec.ExitError
-	if errors.As(err, &exit) && exit.ExitCode() == 1 {
-		return false, nil
-	}
-	return false, errors.New("could not check whether Claude is running; close Claude before connecting")
-}
-func quitClaudeDesktop(ctx context.Context) error {
-	// Ask the application to quit normally. Never force-kill work in progress.
-	if err := exec.CommandContext(ctx, "/usr/bin/osascript", "-e", `tell application id "com.anthropic.claudefordesktop" to quit`).Run(); err != nil {
-		return fmt.Errorf("Claude did not quit; close it and retry: %w", err)
-	}
-	for {
-		running, err := claudeDesktopRunning()
-		if err != nil {
-			return err
-		}
-		if !running {
-			return nil
-		}
-		select {
-		case <-ctx.Done():
-			return errors.New("Claude is still open; finish its active work and close it before reconnecting")
-		case <-time.After(200 * time.Millisecond):
-		}
-	}
 }

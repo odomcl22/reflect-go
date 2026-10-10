@@ -597,7 +597,7 @@ func serveUI(root string) error {
 		}
 		o := Options{Backend: r.URL.Query().Get("backend")}
 		o.Context, e = strconv.Atoi(r.URL.Query().Get("context"))
-		if e != nil || o.Context < 512 || o.Context > 32768 {
+		if e != nil || o.Context < 512 || o.Context > 131072 {
 			http.Error(w, "Invalid context", 400)
 			return
 		}
@@ -653,6 +653,10 @@ func serveUI(root string) error {
 	mux.HandleFunc("/api/quit", func(w http.ResponseWriter, r *http.Request) {
 		var payload struct{}
 		if !decode(w, r, &payload) {
+			return
+		}
+		if err := integrations.disconnectAll(r.Context()); err != nil {
+			http.Error(w, err.Error(), 409)
 			return
 		}
 		if err := manager.waitStopped(); err != nil {

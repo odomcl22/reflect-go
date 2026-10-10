@@ -16,7 +16,7 @@ import (
 	"strings"
 )
 
-const version = "0.4.7-preview"
+const version = "0.4.8-preview"
 const GiB = uint64(1 << 30)
 
 type Settings struct {
@@ -182,8 +182,8 @@ func loadSettings(root string) (Settings, error) {
 	if err = readJSON(path, &s); err != nil {
 		return s, fmt.Errorf("invalid configuration: %w", err)
 	}
-	if s.Context < 512 || s.Context > 32768 {
-		return s, errors.New("context must be 512...32768")
+	if s.Context < 512 || s.Context > 131072 {
+		return s, errors.New("context must be 512...131072")
 	}
 	if s.MaxTokens <= 0 || s.MaxTokens >= s.Context {
 		return s, errors.New("max_tokens must be positive and smaller than context")
@@ -194,20 +194,23 @@ func loadSettings(root string) (Settings, error) {
 	if s.ModelsDirectory == "" {
 		s.ModelsDirectory = "models"
 	}
-	if s.ModelsDirectory != "models" && s.ModelsDirectory != "../Models" {
-		return s, errors.New("models_directory must be models or ../Models")
+	if s.ModelsDirectory != "models" && s.ModelsDirectory != "Models" && s.ModelsDirectory != "../Models" {
+		return s, errors.New("models_directory must be models, Models or ../Models")
 	}
 	if s.ProviderContext == 0 {
 		s.ProviderContext = 16384
 	}
-	if s.ProviderContext < 512 || s.ProviderContext > 32768 {
-		return s, errors.New("provider_context must be 512...32768")
+	if s.ProviderContext < 512 || s.ProviderContext > 131072 {
+		return s, errors.New("provider_context must be 512...131072")
 	}
 	return s, nil
 }
 func modelsDirectory(root string, s Settings) (string, error) {
 	parent := root
 	name := "models"
+	if s.ModelsDirectory == "Models" {
+		name = "Models"
+	}
 	if s.ModelsDirectory == "../Models" {
 		parent = filepath.Dir(root)
 		name = "Models"
@@ -263,6 +266,7 @@ func inventory(root string, s Settings, o Options) (Inventory, error) {
 func inspectModel(path, dir string, context int, budget uint64) Model {
 	m := Model{Name: filepath.Base(path), Path: path, ID: modelID(filepath.Base(path)), Purpose: modelPurpose(filepath.Base(path))}
 	var kv = uint64(524288)
+	var metadata modelMemoryInfo
 	err := func() error {
 		if !contained(path, dir) {
 			return errors.New("symlink points outside the portable folder")
@@ -294,9 +298,18 @@ func inspectModel(path, dir string, context int, budget uint64) Model {
 		if (v != 2 && v != 3) || binary.LittleEndian.Uint64(header[8:]) == 0 || binary.LittleEndian.Uint64(header[16:]) == 0 || m.Bytes <= 1024 {
 			return errors.New("invalid or empty GGUF header")
 		}
-		kv = estimateKV(f, binary.LittleEndian.Uint64(header[16:]))
+		kv = estimateKV(f, binary.LittleEndian.Uint64(header[16:]), &metadata)
+		if metadata.Context > 0 && uint64(context) > metadata.Context {
+			return fmt.Errorf("model supports %d context tokens; choose a shorter context", metadata.Context)
+		}
+		if context > 32768 && !metadata.CompactKV {
+			return errors.New("long desktop context requires verified attention metadata for compact KV memory")
+		}
 		return nil
 	}()
+	if context > 32768 && metadata.CompactKV {
+		kv = (kv*9 + 31) / 32
+	} // Q4_0: 18 bytes per block of 32, versus FP16.
 	estimate := float64(m.Bytes)*1.3 + float64(GiB) + float64(context)*float64(kv)
 	if estimate >= float64(math.MaxInt64) {
 		m.EstimatedBytes = math.MaxInt64
@@ -309,7 +322,13 @@ func inspectModel(path, dir string, context int, budget uint64) Model {
 	m.Eligible = err == nil && m.EstimatedBytes <= budget
 	return m
 }
-func estimateKV(r io.Reader, count uint64) uint64 {
+
+type modelMemoryInfo struct {
+	Context   uint64
+	CompactKV bool
+}
+
+func estimateKV(r io.Reader, count uint64, metadata ...*modelMemoryInfo) uint64 {
 	const fallback = uint64(524288)
 	if count > 10000 {
 		return fallback
@@ -383,6 +402,9 @@ func estimateKV(r io.Reader, count uint64) uint64 {
 			}
 		}
 	}
+	if len(metadata) > 0 {
+		metadata[0].Context = numbers[arch+".context_length"]
+	}
 	if arch != "qwen2" && arch != "qwen3" && arch != "llama" && arch != "mistral" {
 		return fallback
 	}
@@ -404,6 +426,9 @@ func estimateKV(r io.Reader, count uint64) uint64 {
 	estimate := layers * kvheads * (k + v) * 3
 	if estimate > 16<<20 {
 		return fallback
+	}
+	if len(metadata) > 0 {
+		metadata[0].CompactKV = uint64(k)%32 == 0 && uint64(v)%32 == 0
 	}
 	return uint64(math.Max(65536, estimate))
 }

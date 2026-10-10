@@ -10,7 +10,7 @@ changes file bytes, so the copy's manifest is updated to match.
 Example:
   python3 scripts/sign_mac.py --source 'dist/Reflect Go/Phase 4.5' \
       --staging '.build/signing/Reflect Go/Phase 4.5' --exclude-client-packs \
-      --identity 'Developer ID Application: Christian Odom (3TTH5EPH6K)' \
+      --identity 'Developer ID Application: YOUR NAME (TEAM ID)' \
       --notary-profile reflect-go-notary --dmg .build/signing/ReflectGo-mac.dmg
 """
 import argparse
@@ -117,6 +117,16 @@ def sign(bundle, identity):
 def update_manifest(bundle):
     manifest = bundle / "manifest.json"
     hashes = json.loads(manifest.read_text())
+    # Signing portable helpers changes their bytes as well as the bundle hash.
+    helper_index = bundle / "harnesses/helpers.json"
+    if helper_index.exists():
+        helpers = json.loads(helper_index.read_text())
+        helpers = {name: digest(bundle/name) for name in helpers if (bundle/name).is_file()}
+        helper_index.write_text(json.dumps(helpers, indent=2) + "\n")
+    for path in bundle.rglob("*"):
+        relative = path.relative_to(bundle).as_posix()
+        if path.is_file() and not path.is_symlink() and not relative.startswith(("state/", "Models/", "models/")) and relative != "manifest.json":
+            hashes.setdefault(relative, "")
     changed = 0
     for relative in list(hashes):
         path = bundle / relative

@@ -134,3 +134,7 @@ Network model sharing, distributed inference, multi-machine orchestration, Refle
 - [North Star](NORTH_STAR.md): platform commitments and historical scope.
 
 Reference integrations inform the design; they do not establish that Reflect Go or every bundled client version already implements those features.
+
+## 0.4.8 desktop and distribution follow-up
+
+Implemented: larger desktop context with compact cache and GGUF limits, Claude reply-budget normalization, Codex desktop catalog/router, OpenCode JSON/JSONC provider, normal restart plus configuration restoration on quit, native Mac/Windows icons, and platform-specific Reflect Go / Starter Pack archives. See [0.4.8 validation](PREVIEW_0_4_8_VALIDATION.md) for evidence and remaining device/workflow qualification. Trusted publisher signing, Windows Store desktop discovery, long-conversation compaction and Antigravity desktop are not claimed complete.

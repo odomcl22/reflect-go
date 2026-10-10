@@ -11,7 +11,7 @@ client, and work with your local model.
 workflow; it is not an end-to-end inference demonstration.
 [Watch the original brand intro](docs/media/reflect-go-intro.mp4) (12 seconds, with sound).
 
-**Early preview · Source available here · Downloadable packages are not published yet.**
+**Early preview · [Download compiled apps](https://github.com/odomcl22/reflect-go/releases/tag/v0.4.8-preview) · No build tools needed.**
 
 The drive stores model weights, launcher, inference runtime, libraries, and
 settings. The attached computer supplies CPU, GPU, and RAM. Once the drive is
@@ -20,15 +20,16 @@ installation on that computer. Clients can access the project folders you give
 them permission to use. See [app compatibility](docs/HARNESS_COMPATIBILITY.md)
 for tested integrations and platform limitations.
 
-**Current development preview: 0.4.7. Open Reflect Go → open your app → work.**
+**Current preview: 0.4.8. Open Reflect Go → open your app → work.**
 Reflect Go starts the local service automatically and supplies remembered models.
 Choosing a project folder or changing offered models is optional. Codex, Claude
 Code and OpenCode CLI have individual model selections and defaults.
 
-On the assembled personal drive, open **Phase 4.7/Reflect Go.app** on Mac,
-**Phase 4.7/START Reflect Go.exe** on Windows, or `sh "Reflect Go.sh"` on Linux.
-See [startup and features](docs/PREVIEW_0_4_7.md),
-[validation](docs/PREVIEW_0_4_7_VALIDATION.md), and
+Extract the entire download, then open **Reflect Go.app** on Mac,
+**START Reflect Go.exe** on Windows, or run `sh "Reflect Go.sh"` on Linux.
+Keep the app/exe beside its support folders. On the personal drive, use **Phase 4.8**.
+See [startup and features](docs/PREVIEW_0_4_8.md),
+[validation](docs/PREVIEW_0_4_8_VALIDATION.md), and
 [app compatibility](docs/HARNESS_COMPATIBILITY.md).
 The current execution-tested host is an Apple M1 Mac. Other platform builds
 require physical qualification. Earlier previews remain preserved.
@@ -40,13 +41,20 @@ require physical qualification. Earlier previews remain preserved.
 
 **No Plus tier.** The personal package includes Codex, Claude Code and OpenCode.
 Shareable packaging excludes proprietary Claude binaries pending a permitted
-distribution method. **Ready-to-download 0.4.7 assets have not been published.**
-This repository provides source and assembly scripts; these are the two packaging
-choices, not download links.
+distribution method. Installed Claude Desktop connects separately.
 
-Graphical integration work now includes **OpenCode Web**, an installed **DeepSeek
-Harness**, and an **experimental Claude Desktop** connection. Codex in ChatGPT
-Desktop, native OpenCode Desktop and Antigravity remain integration targets.
+| Download | Reflect Go (bring your model) | Starter Pack (one chat demo model) |
+| --- | --- | --- |
+| Mac · Apple Silicon + Intel | [Download ZIP](https://github.com/odomcl22/reflect-go/releases/download/v0.4.8-preview/ReflectGo-0.4.8-macos.zip) | [Download ZIP](https://github.com/odomcl22/reflect-go/releases/download/v0.4.8-preview/ReflectGo-StarterPack-0.4.8-macos.zip) |
+| Windows · x64 + ARM64 | [Download ZIP](https://github.com/odomcl22/reflect-go/releases/download/v0.4.8-preview/ReflectGo-0.4.8-windows.zip) | [Download ZIP](https://github.com/odomcl22/reflect-go/releases/download/v0.4.8-preview/ReflectGo-StarterPack-0.4.8-windows.zip) |
+| Linux · x64 + ARM64 | [Download ZIP](https://github.com/odomcl22/reflect-go/releases/download/v0.4.8-preview/ReflectGo-0.4.8-linux.zip) | [Download ZIP](https://github.com/odomcl22/reflect-go/releases/download/v0.4.8-preview/ReflectGo-StarterPack-0.4.8-linux.zip) |
+
+Mac downloads are Developer ID signed and Apple-notarized. Windows preview executables are unsigned and may trigger SmartScreen. Physical Windows/Linux qualification remains pending. The starter model demonstrates simple chat; desktop clients need a larger-context model. [Checksums and release notes](https://github.com/odomcl22/reflect-go/releases/tag/v0.4.8-preview).
+
+Graphical connections now include **Claude Desktop**, **Codex in ChatGPT Desktop**
+and **OpenCode Desktop** preview adapters, alongside **OpenCode Web** and an installed
+**DeepSeek Harness**. Quit restores connected desktop profiles and restarts those apps;
+you do not need to sign out. Antigravity remains a research target.
 Availability and actual qualification are stated separately in the compatibility
 report. The engine carries local weights; a desktop app may remain installed on
 the host.
@@ -60,8 +68,8 @@ and additional harnesses under **More apps**.
 ## Source repository
 
 This repository contains application source, build and download scripts, pinned
-artifact metadata, tests, and documentation. It does not contain a ready-to-run
-distribution, model weights, bundled third-party clients, or backup archives.
+artifact metadata, tests, and documentation. Compiled distributions live in [GitHub Releases](https://github.com/odomcl22/reflect-go/releases/tag/v0.4.8-preview);
+model weights, bundled third-party clients and backup archives are not committed to source.
 Generated packages belong in `dist/` and private backups in `releases/` locally.
 
 Runtime profiles, credentials, raw conversation logs and `docs/evidence/` are
@@ -75,8 +83,8 @@ upstream license notices when assembling a distribution.
 See the [roadmap to 1.0](docs/ROADMAP.md) for the updated client-first workflow,
 model catalogs and on-demand loading, in-app model downloads, automatic setting
 recommendations, understandable failures, and simple chat with appearance controls.
-It also defines the planned **Reflect Go** and **Reflect Go Starter Pack** downloads.
-The current implementation is in 0.4.7; acceptance gates and deferred work
+It also defines the **Reflect Go** and **Reflect Go Starter Pack** editions.
+The current implementation is in 0.4.8; acceptance gates and deferred work
 remain in the roadmap. Phase 4.5 instructions below describe that preserved preview.
 
 The core path is **3.1 workstation hardening → 4.0 supported Windows/Mac/Linux runtime → 4.5 CLI compatibility and portable harness packs → Reflect Go 1.0 qualification**. The initial harness targets are **Codex CLI, OpenCode CLI, and Claude Code CLI**, all using the shared local model provider. Phase 4.5 carries pinned native harness software with isolated profiles on the drive; a host installation is an explicit command-line alternative.
@@ -85,9 +93,9 @@ The three portable CLIs are the core; graphical adapters are qualified individua
 
 ChromeOS/Chromebooks are a conditional Phase 4 target through an enabled Linux development environment. Device policy, drive execution permissions, memory, and available acceleration require physical qualification; zero setup on every Chromebook is not promised.
 
-## Phase folders and shared models
+## Preserved development phases and shared models
 
-Copy the **whole collection** in `dist/Reflect Go`, keeping these siblings together:
+Public downloads contain only the current package. For the personal development collection in `dist/Reflect Go`, keep these siblings together:
 
 ```text
 Reflect Go/
@@ -100,6 +108,7 @@ Reflect Go/
   Phase 4.5/    Preserved portable CLI preview
   Phase 4.6/    Preserved gateway, downloads, recommendations, chat and themes
   Phase 4.7/    App-first launch, remembered selections and graphical adapters
+  Phase 4.8/    Desktop context, reversible connections and native app icons
   Workspace/    Default client workspace; separate from models and software
 ```
 

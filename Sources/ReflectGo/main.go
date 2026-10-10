@@ -52,8 +52,8 @@ func parseOptions(args []string) (Options, error) {
 	}
 	visited := map[string]bool{}
 	f.Visit(func(v *flag.Flag) { visited[v.Name] = true })
-	if visited["context"] && (o.Context < 512 || o.Context > 32768) {
-		return o, errors.New("context must be 512...32768")
+	if visited["context"] && (o.Context < 512 || o.Context > 131072) {
+		return o, errors.New("context must be 512...131072")
 	}
 	if visited["max-tokens"] && o.MaxTokens <= 0 {
 		return o, errors.New("max-tokens must be positive")
@@ -108,7 +108,7 @@ func mainRun(args []string) error {
 		return connectClient(root, args[1:])
 	}
 	if len(args) > 0 && (args[0] == "--help" || args[0] == "help") {
-		fmt.Println("Reflect Go 0.4.5\nCommands: ui, chat, run --prompt TEXT, serve, inventory, models, doctor, verify, qualify, connect\nOptions: --model FILE --context N --cpu --backend auto|cpu|metal|vulkan --threads N --temperature N --port N\nKeep the whole Phase 4.5 folder beside Models. No runtime downloads or cloud fallback.")
+		fmt.Println("Reflect Go " + version + "\nCommands: ui, chat, run --prompt TEXT, serve, inventory, models, doctor, verify, qualify, connect\nOptions: --model FILE --context N --cpu --backend auto|cpu|metal|vulkan --threads N --temperature N --port N\nKeep the complete package together. Local requests never fall back to the cloud.")
 		return nil
 	}
 	o, err := parseOptions(args)
@@ -217,6 +217,9 @@ func launch(root string, s Settings, o Options, inv Inventory) error {
 		threads = max(1, inv.Hardware.CPUThreads-2)
 	}
 	args := []string{"--model", m.Path, "--offline", "--jinja", "--ctx-size", strconv.Itoa(context), "--threads", strconv.Itoa(threads), "--parallel", "1", "--batch-size", "256", "--ubatch-size", "128", "--fit", "off", "--temp", strconv.FormatFloat(temp, 'f', -1, 64), "--seed", "42"}
+	if context > 32768 {
+		args = append(args, "--cache-type-k", "q4_0", "--cache-type-v", "q4_0", "--flash-attn", "on")
+	}
 	if backend.Kind == "cpu" {
 		args = append(args, "--device", "none", "--gpu-layers", "0", "--no-kv-offload", "--no-op-offload")
 	} else {

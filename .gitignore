@@ -43,3 +43,4 @@ Desktop.ini
 *.py[cod]
 node_modules/
 .venv/
+*.syso

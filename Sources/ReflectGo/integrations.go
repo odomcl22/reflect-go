@@ -8,8 +8,6 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"os/exec"
-	"runtime"
 	"sort"
 	"strings"
 	"sync"
@@ -26,23 +24,28 @@ type integrationInfo struct {
 	ActionLabel string `json:"actionLabel"`
 }
 type integrationRequest struct {
-	ID             string       `json:"id"`
-	Project        string       `json:"project"`
-	Settings       *RunSettings `json:"settings,omitempty"`
-	ConfirmRestart bool         `json:"confirmRestart"`
+	ID                   string       `json:"id"`
+	Project              string       `json:"project"`
+	Settings             *RunSettings `json:"settings,omitempty"`
+	ConfirmRestart       bool         `json:"confirmRestart"`
+	ConfirmEngineRestart bool         `json:"confirmEngineRestart"`
 }
 type integrationManager struct {
 	root       string
 	engine     *EngineManager
 	mu         sync.Mutex
 	closeProxy func()
+	proxies    map[string]func()
 }
 
 func newIntegrationManager(root string, engine *EngineManager) *integrationManager {
-	return &integrationManager{root: root, engine: engine}
+	return &integrationManager{root: root, engine: engine, proxies: map[string]func(){}}
 }
 func (m *integrationManager) connected() bool {
-	path, err := claudeJournalPath(m.root)
+	return m.connectedID("claude-desktop")
+}
+func (m *integrationManager) connectedID(id string) bool {
+	path, err := desktopJournalPath(m.root, id)
 	if err != nil {
 		return false
 	}
@@ -55,10 +58,10 @@ func (m *integrationManager) connected() bool {
 	return j.Home == home && j.Host == host
 }
 func (m *integrationManager) inventory() []integrationInfo {
-	claude := claudeDesktopApp() != ""
-	claudeDetail := "Connect up to five local models. Experimental: desktop conversations and tools still need testing. Previous connection settings are saved for restoration."
+	claude := desktopApp("claude-desktop") != ""
+	claudeDetail := "Uses 49,152 context with compact KV memory when the selected model fits. Disconnect or quit restores the previous connection and restarts the app; no sign-out."
 	if !claude {
-		claudeDetail = "Requires Claude Desktop installed on a Mac."
+		claudeDetail = "Requires a supported Claude Desktop installation."
 	}
 	_, deepSeekError := findDeepSeek()
 	deepSeekDetail := "Open the installed harness in your browser with shared model choices and settings stored on the drive."
@@ -70,8 +73,8 @@ func (m *integrationManager) inventory() []integrationInfo {
 		{ID: "claude-desktop", Name: "Claude Desktop", Kind: "Experimental desktop connection", Available: claude, Connected: m.connected(), Detail: claudeDetail, ActionLabel: "Connect Claude Desktop"},
 		{ID: "deepseek", Name: "DeepSeek Harness", Kind: "Installed harness · browser interface", Available: deepSeekError == nil, Detail: deepSeekDetail, ActionLabel: "Open DeepSeek Harness"},
 		{ID: "opencode-web", Name: "OpenCode Web", Kind: "Portable graphical harness", Available: webError == nil, Detail: "Work in OpenCode’s graphical browser interface with your shared local models. Included with the portable OpenCode pack.", ActionLabel: "Open OpenCode Web"},
-		{ID: "codex-desktop", Name: "Codex in ChatGPT Desktop", Kind: "Integration target", Detail: "Desktop connection is not available yet. Use Codex CLI with your local models.", ActionLabel: "Not available yet"},
-		{ID: "opencode-desktop", Name: "OpenCode Desktop", Kind: "Integration target", Detail: "Desktop connection is not available yet. OpenCode CLI and Web are available.", ActionLabel: "Not available yet"},
+		{ID: "codex-desktop", Name: "Codex in ChatGPT Desktop", Kind: "Preview desktop connection", Available: desktopApp("codex-desktop") != "", Connected: m.connectedID("codex-desktop"), Detail: "Adds local models alongside your existing catalog. Local requests stay local; selecting an existing cloud model uses your normal account. Restores settings on disconnect or quit. Requires a supported installed ChatGPT app.", ActionLabel: "Connect Codex Desktop"},
+		{ID: "opencode-desktop", Name: "OpenCode Desktop", Kind: "Preview desktop connection", Available: desktopApp("opencode-desktop") != "", Connected: m.connectedID("opencode-desktop"), Detail: "Adds a local provider to your installed desktop config. Your previous model and provider settings return on disconnect or quit. Project selection happens in OpenCode.", ActionLabel: "Connect OpenCode Desktop"},
 		{ID: "antigravity", Name: "Antigravity", Kind: "Integration target", Detail: "Local-model compatibility is being evaluated. No connection is available yet.", ActionLabel: "Not available yet"},
 	}
 }
@@ -111,56 +114,44 @@ func (m *integrationManager) routes(mux *http.ServeMux) {
 				http.Error(w, err.Error(), 400)
 				return
 			}
-			if p.ID == "claude-desktop" {
-				if runtime.GOOS != "darwin" {
-					http.Error(w, "Claude Desktop connection is currently macOS only", 400)
-					return
-				}
-				if action == "disconnect" && !m.connected() {
+			if isDesktopIntegration(p.ID) {
+				if action == "disconnect" && !m.connectedID(p.ID) {
 					http.Error(w, "There is no Reflect Go desktop connection recorded for this computer; no app or settings changed", 409)
 					return
 				}
-				running, err := claudeDesktopRunning()
+				if action == "launch" && m.connectedID(p.ID) {
+					http.Error(w, "Disconnect the recorded connection before changing its models", 409)
+					return
+				}
+				running, err := desktopRunning(p.ID)
 				if err != nil {
 					http.Error(w, err.Error(), 400)
 					return
 				}
 				if running && !p.ConfirmRestart {
-					send(w, 409, map[string]any{"needsRestart": true, "message": "Claude Desktop must restart to change its connection. Finish its current work before continuing. Reflect Go will preserve unrelated settings and restore its connection fields when disconnected."})
-					return
-				}
-				if action == "launch" && m.connected() {
-					http.Error(w, "Claude already has a recorded Reflect Go connection. Restore previous settings before changing its offered models.", 409)
+					send(w, 409, map[string]any{"needsRestart": true, "message": "This desktop app must restart to change its connection. Finish its current work. Disconnecting or quitting Reflect Go will restore its previous settings and restart it again; sign-out is not required."})
 					return
 				}
 			}
+
 			var message string
 			var err error
 			if action == "disconnect" {
-				if p.ID != "claude-desktop" {
+				if !isDesktopIntegration(p.ID) {
 					http.Error(w, "This app does not change a host connection profile", 400)
 					return
 				}
-				err = runDesktopChange(r.Context(), p.ConfirmRestart, false, desktopChangeActions{
-					Running: claudeDesktopRunning,
-					Quit:    quitClaudeDesktop,
-					Apply: func() error {
-						if err := restoreClaudeProfile(m.root); err != nil {
-							return err
-						}
-						if m.closeProxy != nil {
-							m.closeProxy()
-							m.closeProxy = nil
-						}
-						return nil
-					},
-					Open: openClaudeDesktop,
-				})
-				message = "Claude's previous connection settings were restored."
+				err = m.disconnect(r.Context(), p.ID, p.ConfirmRestart)
+				message = "Previous connection restored. No sign-out was needed."
 			} else {
 				message, err = m.launch(r.Context(), p)
 			}
+
 			if err != nil {
+				if errors.Is(err, errDesktopEngineRestart) {
+					send(w, 409, map[string]any{"needsEngineRestart": true, "message": err.Error()})
+					return
+				}
 				if errors.Is(err, errDesktopRestart) {
 					send(w, 409, map[string]any{"needsRestart": true, "message": err.Error()})
 					return
@@ -195,18 +186,24 @@ func (m *integrationManager) launch(ctx context.Context, p integrationRequest) (
 	if p.Settings != nil {
 		shared = *p.Settings
 	}
-	if !status.Active && !status.Preparing && shared.Context < 16384 {
-		shared.Context = 16384
+	minimum := 16384
+	if isDesktopIntegration(p.ID) {
+		minimum = 49152
 	}
-	if shared.Context < 16384 {
-		return "", errors.New("this harness needs 16,384 context. Finish active work and stop the engine before opening it")
+	restartEngine := (status.Active || status.Preparing) && shared.Context < minimum
+	if restartEngine && !p.ConfirmEngineRestart {
+		return "", errDesktopEngineRestart
 	}
+	if shared.Context < minimum {
+		shared.Context = minimum
+	}
+
 	prefs, err := loadLaunchPreferences(m.root)
 	if err != nil {
 		return "", err
 	}
 	settings := gatewayRunSettings(shared, prefs)
-	if (status.Active || status.Preparing) && !sameEngineConfiguration(status.Settings, settings) {
+	if (status.Active || status.Preparing) && !restartEngine && !sameEngineConfiguration(status.Settings, settings) {
 		return "", errors.New("the engine is using different settings; finish active work and stop it before changing its offered models")
 	}
 	cfg, err := loadSettings(m.root)
@@ -240,6 +237,11 @@ func (m *integrationManager) launch(ctx context.Context, p integrationRequest) (
 	if p.ID == "claude-desktop" && len(offered) > 5 {
 		return "", errors.New("offer at most five models before connecting Claude Desktop")
 	}
+	if restartEngine {
+		if err = m.engine.waitStopped(); err != nil {
+			return "", err
+		}
+	}
 	if err = ensureClientEngine(ctx, m.engine, settings); err != nil {
 		return "", err
 	}
@@ -271,67 +273,97 @@ func (m *integrationManager) launch(ctx context.Context, p integrationRequest) (
 		return launchDeepSeekContext(ctx, m.root, project, c, key, models)
 	case "opencode-web":
 		return launchOpenCodeWebContext(ctx, m.root, project, c, key, models)
-	case "claude-desktop":
-		base, closeProxy, err := startClaudeDesktopProxy(c, key, models)
-		if err != nil {
-			return "", err
-		}
-		home, err := os.UserHomeDir()
-		if err != nil {
-			closeProxy()
-			return "", err
-		}
-		host, err := os.Hostname()
-		if err != nil {
-			closeProxy()
-			return "", err
-		}
-		journal, err := planClaudeProfile(home, host, base, key)
-		if err != nil {
-			closeProxy()
-			return "", err
-		}
-		path, err := claudeJournalPath(m.root)
-		if err == nil {
-			if _, e := os.Stat(path); e == nil {
-				err = errors.New("a desktop connection is already recorded; restore it before reconnecting")
-			} else if !os.IsNotExist(e) {
-				err = e
-			}
-		}
-		if err != nil {
-			closeProxy()
-			return "", err
-		}
-		// Validation and the reversible edit plan are complete before asking the
-		// desktop app to quit. Recheck running state in case it changed meanwhile.
-		err = runDesktopChange(ctx, p.ConfirmRestart, true, desktopChangeActions{
-			Running:  claudeDesktopRunning,
-			Quit:     quitClaudeDesktop,
-			Apply:    func() error { return applyProfileJournal(path, journal) },
-			Open:     openClaudeDesktop,
-			Rollback: func() error { return restoreClaudeProfile(m.root) },
-		})
-		if err != nil {
-			closeProxy()
-			return "", err
-		}
-		m.closeProxy = closeProxy
-		return "Claude Desktop opened with Reflect Go's local model slots. This experimental adapter has protocol/configuration tests; desktop task workflows remain unqualified. Project selection happens inside Claude Desktop.", nil
+	case "claude-desktop", "codex-desktop", "opencode-desktop":
+		return m.launchDesktop(ctx, p, c, key, models)
 	}
+
 	return "", errors.New("unknown app")
 }
-func (m *integrationManager) close() {
+func isDesktopIntegration(id string) bool {
+	return id == "claude-desktop" || id == "codex-desktop" || id == "opencode-desktop"
+}
+
+var errDesktopEngineRestart = errors.New("Desktop apps need a larger context than the running service. Finish all client tasks before restarting it with 49,152 tokens and compact KV memory")
+
+func (m *integrationManager) launchDesktop(ctx context.Context, p integrationRequest, c Connection, key string, models []ClientModel) (string, error) {
+	base := c.Base
+	closeProxy := func() {}
+	var err error
+	switch p.ID {
+	case "claude-desktop":
+		base, closeProxy, err = startClaudeDesktopProxy(c, key, models)
+	case "codex-desktop":
+		base, closeProxy, err = startCodexDesktopProxy(c, key, models)
+	}
+	if err != nil {
+		return "", err
+	}
+	home, err := os.UserHomeDir()
+	if err != nil {
+		closeProxy()
+		return "", err
+	}
+	host, err := os.Hostname()
+	if err != nil {
+		closeProxy()
+		return "", err
+	}
+	var journal profileJournal
+	if p.ID == "claude-desktop" {
+		journal, err = planClaudeProfile(home, host, base, key)
+	} else {
+		journal, err = planDesktopProfile(home, host, p.ID, base, key, c, models)
+	}
+	if err != nil {
+		closeProxy()
+		return "", err
+	}
+	path, err := desktopJournalPath(m.root, p.ID)
+	if err != nil {
+		closeProxy()
+		return "", err
+	}
+	err = runDesktopChange(ctx, p.ConfirmRestart, true, desktopChangeActions{Running: func() (bool, error) { return desktopRunning(p.ID) }, Quit: func(ctx context.Context) error { return quitDesktop(ctx, p.ID) }, Apply: func() error { return applyProfileJournal(path, journal) }, Open: func(ctx context.Context) error { return openDesktop(ctx, p.ID) }, Rollback: func() error { return restoreDesktopProfile(m.root, p.ID) }})
+	if err != nil {
+		closeProxy()
+		return "", err
+	}
+	m.proxies[p.ID] = closeProxy
+	return "Desktop opened with your local models. Disconnect or quit Reflect Go to restore its previous connection; sign-out is not needed. Select the project inside the desktop app.", nil
+}
+func (m *integrationManager) disconnect(ctx context.Context, id string, confirmed bool) error {
+	err := runDesktopChange(ctx, confirmed, false, desktopChangeActions{Running: func() (bool, error) { return desktopRunning(id) }, Quit: func(ctx context.Context) error { return quitDesktop(ctx, id) }, Apply: func() error { return restoreDesktopProfile(m.root, id) }, Open: func(ctx context.Context) error { return openDesktop(ctx, id) }})
+	if err == nil {
+		if close := m.proxies[id]; close != nil {
+			close()
+			delete(m.proxies, id)
+		}
+	}
+	return err
+}
+func (m *integrationManager) disconnectAll(ctx context.Context) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	for _, id := range []string{"claude-desktop", "opencode-desktop", "codex-desktop"} {
+		if m.connectedID(id) {
+			if err := m.disconnect(ctx, id, true); err != nil {
+				return fmt.Errorf("could not disconnect %s: %w", id, err)
+			}
+		}
+	}
+	return nil
+}
+func (m *integrationManager) close() {
+	ctx, cancel := context.WithTimeout(context.Background(), 45*time.Second)
+	defer cancel()
+	if err := m.disconnectAll(ctx); err != nil {
+		fmt.Fprintln(os.Stderr, "Desktop connection restore needs attention:", err)
+	}
+	for _, close := range m.proxies {
+		close()
+	}
 	if m.closeProxy != nil {
 		m.closeProxy()
-		m.closeProxy = nil
-	}
-	if m.connected() {
-		if err := restoreClaudeProfile(m.root); err != nil {
-			fmt.Fprintln(os.Stderr, "Claude connection restore needs attention:", err)
-		}
 	}
 	closeAdditionalHarnesses(m.root)
 }
@@ -351,7 +383,7 @@ func integrationModels(models []ClientModel, defaultID string, shared RunSetting
 	return selected, id, nil
 }
 
-var errDesktopRestart = errors.New("Claude Desktop must restart to change its connection. Finish its current work before continuing")
+var errDesktopRestart = errors.New("The desktop app must restart to change its connection. Finish its current work before continuing")
 
 type desktopChangeActions struct {
 	Running  func() (bool, error)
@@ -359,14 +391,6 @@ type desktopChangeActions struct {
 	Apply    func() error
 	Open     func(context.Context) error
 	Rollback func() error
-}
-
-func openClaudeDesktop(ctx context.Context) error {
-	app := claudeDesktopApp()
-	if app == "" {
-		return errors.New("Claude Desktop is no longer available; reopen it manually after checking the connection settings")
-	}
-	return exec.CommandContext(ctx, "/usr/bin/open", "-a", app).Run()
 }
 
 // Called only after model/engine validation and a reversible profile plan exist.

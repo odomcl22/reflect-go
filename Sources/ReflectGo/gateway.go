@@ -256,7 +256,9 @@ func serveGateway(root string, s Settings, o Options, inv Inventory) error {
 		if o.Temperature < 0 {
 			args[len(args)-1] = strconv.FormatFloat(s.Temperature, 'f', -1, 64)
 		}
-		if o.CPU { args = append(args,"--cpu") }
+		if o.CPU {
+			args = append(args, "--cpu")
+		}
 		if o.Threads > 0 {
 			args = append(args, "--threads", strconv.Itoa(o.Threads))
 		}

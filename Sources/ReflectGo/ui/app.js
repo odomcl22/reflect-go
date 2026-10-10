@@ -298,11 +298,15 @@ async function launchIntegration(app, action) {
   $('integration-result').textContent = action === 'disconnect' ? 'Restoring settings for ' + app.name + '…' : 'Preparing your local models for ' + app.name + '…';
   try {
     await savePreferences(); await runSave.catch(() => {});
-    const request = {id: app.id, project: $('project').value.trim(), settings: settings(), confirmRestart: false};
+    const request = {id: app.id, project: $('project').value.trim(), settings: settings(), confirmRestart: false, confirmEngineRestart: false};
     async function perform() {
       const response = await fetch('/api/integrations/' + action, {method: 'POST', headers: {Authorization: 'Bearer ' + token, 'Content-Type': 'application/json'}, body: JSON.stringify(request)});
       const text = await response.text(); let result;
       try { result = JSON.parse(text); } catch { result = {message: text}; }
+      if (response.status === 409 && result.needsEngineRestart && !request.confirmEngineRestart) {
+        if (!confirm(result.message + '\n\nRestart the local service now?')) return {message: 'The service was not restarted.'};
+        request.confirmEngineRestart = true; return perform();
+      }
       if (response.status === 409 && result.needsRestart && !request.confirmRestart) {
         if (!confirm(result.message + '\n\nRestart this app now?')) return {message: 'No app was restarted.'};
         request.confirmRestart = true; return perform();
@@ -390,7 +394,7 @@ $('chat-send').onclick=async()=>{const text=$('chat-input').value.trim();if(!tex
 async function stopChat(){if(!chatController)return;chatStopping=true;chatController.abort();chatReader?.cancel().catch(()=>{});try{await api('chat/cancel',{})}catch(e){error(e)}finally{chatStopping=false;controls()}}
 $('chat-stop').onclick=stopChat;$('new-chat').onclick=()=>{messages=[];$('messages').replaceChildren();$('chat-timing').textContent='';};
 $('theme').onchange=async()=>{applyTheme($('theme').value);try{await api('preferences',{theme:$('theme').value})}catch(e){error(e)}};
-$('quit').onclick=async()=>{if((engine?.active||download?.active)&&!confirm('Stop the engine, pause downloads, and quit? Finish client tasks first.'))return;chatController?.abort();try{await api('download/cancel',{});await api('quit',{});closed=true;sessionStorage.removeItem(storeKey);$('connection').hidden=false;$('connection').textContent='Workstation closed. Eject after the launcher exits.';document.querySelectorAll('button,input,select,textarea').forEach(el=>el.disabled=true);}catch(e){error(e)}};
+$('quit').onclick=async()=>{if((engine?.active||download?.active||integrations.some(app=>app.connected))&&!confirm('Finish client tasks first. Quit will restore connected desktop apps to their previous settings and restart them, stop the engine, and pause downloads. Continue?'))return;chatController?.abort();try{await api('download/cancel',{});await api('quit',{});closed=true;sessionStorage.removeItem(storeKey);$('connection').hidden=false;$('connection').textContent='Workstation closed. Eject after the launcher exits.';document.querySelectorAll('button,input,select,textarea').forEach(el=>el.disabled=true);}catch(e){error(e)}};
 $('copy').onclick=async()=>{try{await navigator.clipboard.writeText(JSON.stringify(lastReport,null,2));$('copy').textContent='Copied'}catch{error(Error('Clipboard access unavailable. Select and copy the report below.'))}};
 const pageCopy = {
   workstation: ['Your AI. Anywhere.', 'Open an app. Your models go with you.'],

@@ -13,6 +13,7 @@ import WebKit
     private var failing = false
     private var timer: Timer?
     private var base: URL?
+    private var sessionToken = ""
     private var quitting = false
     private var started = Date()
     private var choosingProject = false
@@ -99,6 +100,7 @@ import WebKit
         }
         startupBytes.removeAll()
         base = url
+        sessionToken = token
         web.load(URLRequest(url: authenticated))
     }
     private func check() {
@@ -180,17 +182,37 @@ import WebKit
             return .terminateNow
         }
         if quitting { return .terminateLater }
-        let alert = NSAlert(); alert.messageText = "Stop Reflect Go and close?"; alert.informativeText = "Finish client tasks first. The engine will stop and active downloads will pause before the drive can be ejected."
+        let alert = NSAlert(); alert.messageText = "Stop Reflect Go and close?"; alert.informativeText = "Finish client tasks first. Connected desktop apps will restart with their previous settings—no sign-out. The engine will stop and downloads will pause."
         alert.addButton(withTitle: "Stop and quit"); alert.addButton(withTitle: "Keep running")
         if alert.runModal() != .alertFirstButtonReturn { return .terminateCancel }
         quitting = true
         timer?.invalidate()
-        // Cocoa's deferred-termination loop does not reliably run ordinary
-        // timers. Reply from the child's exit notification instead.
-        process.terminationHandler = { _ in
-            DispatchQueue.main.async { NSApp.reply(toApplicationShouldTerminate: true) }
-        }
-        owner?.fileHandleForWriting.closeFile()
+        guard let base else { return .terminateCancel }
+        var request = URLRequest(url: base.appendingPathComponent("api/quit"))
+        request.httpMethod = "POST"
+        request.setValue("Bearer " + sessionToken, forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = Data("{}".utf8)
+        request.timeoutInterval = 90
+        URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                if let http = response as? HTTPURLResponse, http.statusCode == 200 {
+                    self.timer?.invalidate()
+                    self.owner?.fileHandleForWriting.closeFile()
+                    NSApp.reply(toApplicationShouldTerminate: true)
+                } else {
+                    self.quitting = false
+                    NSApp.reply(toApplicationShouldTerminate: false)
+                    self.timer = Timer.scheduledTimer(withTimeInterval: 0.25, repeats: true) { [weak self] _ in
+                        Task { @MainActor in self?.check() }
+                    }
+                    let alert = NSAlert(); alert.messageText = "Reflect Go is still open"
+                    alert.informativeText = String(data: data ?? Data(), encoding: .utf8) ?? error?.localizedDescription ?? "The desktop connection could not be restored. Close the connected app and try again."
+                    alert.runModal()
+                }
+            }
+        }.resume()
         return .terminateLater
     }
 }
