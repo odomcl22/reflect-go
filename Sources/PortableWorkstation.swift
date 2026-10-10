@@ -36,7 +36,7 @@ import WebKit
         :root {color-scheme: light dark} body {font: 17px -apple-system, sans-serif; margin: 12%; line-height: 1.6} h1 {font-size: 32px} p {max-width: 640px}
         </style></head><body><h1>Opening Reflect Go…</h1><p>Preparing your portable workstation.</p><p>If macOS asks for access to Documents or your removable drive, allow it so Reflect Go can read its models and settings. A rebuilt preview may ask again.</p></body></html>
         """, baseURL: nil)
-        window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 1180, height: 880), styleMask: [.titled, .closable, .miniaturizable, .resizable], backing: .buffered, defer: false)
+        window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 1040, height: 760), styleMask: [.titled, .closable, .miniaturizable, .resizable], backing: .buffered, defer: false)
         window.title = "Reflect Go"
         window.minSize = NSSize(width: 720, height: 560)
         window.contentView = web

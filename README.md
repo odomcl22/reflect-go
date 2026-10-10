@@ -39,7 +39,11 @@ Availability and actual qualification are stated separately in the compatibility
 report. The engine carries local weights; a desktop app may remain installed on
 the host.
 
-![Reflect Go Apps screen, captured from the running native Mac preview](docs/media/reflect-go-apps-047.png)
+The home screen keeps the three client launchers and an optional project together.
+Model choices live in **Models**, appearance and runtime controls in **Settings**,
+and additional harnesses under **More apps**.
+
+![Simplified Reflect Go Apps screen, captured from an isolated running UI preview](docs/media/reflect-go-apps-047-simplified.jpg)
 
 ## Source repository
 

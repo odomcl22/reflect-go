@@ -8,7 +8,7 @@ let inv = null, engine = null, selected = '', enabled = null, loading = false, i
 let lastReport = null, catalog = [], download = null, providerSignature = '', chatController = null, chatReader = null, chatStopping = false, messages = [];
 let launchPrefs = {project: '', clients: {}}, prefsLoaded = false, clientPacks = {}, launching = '', serviceStarting = false;
 let prefsSave = Promise.resolve(), runSave = Promise.resolve(), integrations = [], integrationsLoading = false;
-let settingsRestored = false, preferencesLoad = null;
+let settingsRestored = false, preferencesLoad = null, integrationsSeen = false;
 const gib = n => (n / 1073741824).toFixed(2) + ' GiB';
 async function api(path, body) {
   const options = {headers: {Authorization: 'Bearer ' + token}};
@@ -45,13 +45,16 @@ function offeredModels(client) {
 function updateClientCards() {
   if (!inv) return;
   const shared = sharedModels();
-  $('enabled-summary').textContent = shared.length + ' shared model' + (shared.length === 1 ? '' : 's');
+  $('enabled-summary').textContent = shared.length + ' available';
+  $('home-model-summary').textContent = shared.length + ' model' + (shared.length === 1 ? '' : 's') + ' available';
   $('empty-library').hidden = !!inv.models.length;
   for (const client of Object.keys(clientNames)) {
     const models = offeredModels(client), pref = clientPreference(client);
     const chosen = models.find(m => m.id === pref.defaultModel) || (!pref.defaultModel && models.find(m => m.name === selected));
-    $(client + '-models').textContent = models.length ? models.length + ' model' + (models.length === 1 ? '' : 's') + ' · ' + (chosen ? friendlyName(chosen) + ' by default' : pref.defaultModel ? 'Starting model unavailable' : 'Automatic default') : 'No models selected';
-    $(client + '-availability').textContent = clientPacks[client] ? 'Portable client ready' : 'Client pack not on this drive';
+    $(client + '-models').textContent = models.length ? models.length + ' model' + (models.length === 1 ? '' : 's') + ' · ' + (chosen ? friendlyName(chosen) : pref.defaultModel ? 'Default unavailable' : 'Automatic') : 'No models selected';
+    $(client + '-models').title = chosen ? 'Starting model: ' + friendlyName(chosen) : $(client + '-models').textContent;
+    $(client + '-availability').textContent = 'Client pack not on this drive';
+    $(client + '-availability').hidden = !!clientPacks[client];
   }
 }
 async function loadLaunchPreferences() {
@@ -61,7 +64,7 @@ async function loadLaunchPreferences() {
     const saved = await api('launch-preferences');
     launchPrefs = {project: saved.project || '', clients: saved.clients || {}};
     $('project').value = launchPrefs.project; prefsLoaded = true;
-    if (saved.projectWarning) { $('project-warning').textContent = saved.projectWarning; $('project-warning').hidden = false; }
+    if (saved.projectWarning) { $('project-warning').textContent = saved.projectWarning; $('project-warning').hidden = false; $('launch-options').open = true; }
     controls(); updateClientCards();
   })();
   try { await preferencesLoad; } finally { preferencesLoad = null; }
@@ -111,7 +114,8 @@ function renderModels() {
   $('automatic-default').textContent = selected ? 'Use an automatic default' : 'Automatic default selected';
   $('inherit-models').checked = inherited;
   $('inherit-models').disabled = locked;
-  $('model-editor-help').textContent = isShared ? 'Shared defaults apply to apps that use the shared selection. Only one model loads at a time, when requested.' : 'Changes apply when you next open ' + clientNames[client] + '. The local service must already offer any models added while it is running.';
+  $('model-service-settings').hidden = !isShared || !(engine?.active || engine?.preparing);
+  $('model-editor-help').textContent = isShared && (engine?.active || engine?.preparing) ? 'Stop the local service in Settings before changing shared models. Finish client tasks first.' : isShared ? 'Shared defaults apply to apps that use the shared selection. Only one model loads at a time, when requested.' : 'Changes apply when you next open ' + clientNames[client] + '. The local service must already offer any models added while it is running.';
   if (!isShared) {
     const select = $('client-default'); select.replaceChildren(new Option('Automatic', ''));
     for (const m of offeredModels(client)) select.add(new Option(friendlyName(m) + (m.eligible ? '' : ' · above memory estimate'), m.id));
@@ -146,7 +150,7 @@ function renderModels() {
     }
     list.append(row);
   }
-  if (!inv.models.length) list.textContent = 'No models installed. Open Model library to download or import one.';
+  if (!inv.models.length) list.textContent = 'No models installed. Choose Add models to download or import one.';
 }
 function controls() {
   const active = !!engine?.active, preparing = !!engine?.preparing, pending = !!launching || serviceStarting;
@@ -160,6 +164,7 @@ function controls() {
   $('refresh').disabled = active || preparing || loading || pending;
   $('project').disabled = pending || !prefsLoaded; $('task').disabled = pending; $('browse-project').disabled = pending || !prefsLoaded; $('clear-project').disabled = pending || !prefsLoaded;
   $('clear-project').hidden = !$('project').value;
+  updateProjectSummary();
   $('model-client').disabled = pending;
   $('refresh-integrations').disabled = pending || integrationsLoading;
   document.querySelectorAll('[data-integration-action]').forEach(button => { button.disabled = pending || !initialized || !prefsLoaded || !inv || loading || !button.dataset.available; });
@@ -170,7 +175,7 @@ function controls() {
   $('chat-model').disabled = !!chatController; $('new-chat').disabled = !!chatController;
   for (const client of Object.keys(clientNames)) {
     $(client).disabled = !initialized || !prefsLoaded || !inv || loading || pending || !clientPacks[client] || !!engine?.stopping;
-    $(client).textContent = launching === client ? 'Opening…' : 'Open ' + clientNames[client];
+    $(client).textContent = launching === client ? 'Opening…' : 'Open';
   }
 }
 async function refresh() {
@@ -205,9 +210,9 @@ async function poll() {
     if (wasLocked !== !!(engine.active || engine.preparing)) renderModels();
     download = data.download; clientPacks = data.clients; $('connection').hidden = true;
     const g = data.gateway || {};
-    $('status').textContent = engine.active || engine.preparing ? engine.status : 'Ready when you are';
-    $('detail').textContent = engine.ready ? 'Local service available. Open an app to continue.' : engine.active || engine.preparing ? 'Starting the local service. Keep the drive connected.' : 'Open an app to start your local service automatically.';
-    $('loading-stage').textContent = g.model ? g.stage + ': ' + g.model + (g.error ? ' — ' + g.error : '') : engine.ready ? 'Models load when requested' : '';
+    $('status').textContent = engine.ready ? 'Local service running' : engine.active || engine.preparing ? engine.status : 'Ready when you are';
+    $('detail').textContent = engine.ready ? 'Models load when an app requests them.' : engine.active || engine.preparing ? 'Starting the local service. Keep the drive connected.' : 'The local service starts when you open an app.';
+    $('loading-stage').textContent = g.model ? g.stage + ': ' + g.model + (g.error ? ' — ' + g.error : '') : '';
     $('load-time').textContent = g.loadSeconds ? 'Last model load: ' + g.loadSeconds.toFixed(1) + ' seconds' : '';
     $('speed').textContent = engine.speed > 0 ? engine.speed.toFixed(1) : '—'; $('resident').textContent = engine.residentBytes ? gib(engine.residentBytes) : '—';
     $('clients').textContent = Object.keys(clientNames).map(n => clientNames[n] + ': ' + (data.clients[n] ? 'on this drive' : 'pack missing')).join(' · ');
@@ -251,7 +256,16 @@ async function poll() {
   finally { if (!closed) setTimeout(poll, 2000); }
 }
 function renderIntegrations() {
-  const container = $('integrations'); container.replaceChildren();
+  const container = $('integrations'), unavailable = $('unavailable-integrations');
+  container.replaceChildren(); unavailable.replaceChildren();
+  const ready = integrations.filter(app => app.available || app.connected);
+  const otherCount = integrations.length - ready.length, connected = integrations.filter(app => app.connected).length;
+  $('integration-summary').textContent = connected ? connected + ' connected' : ready.length ? ready.length + ' available' : '';
+  $('unavailable-apps').hidden = !otherCount;
+  $('unavailable-count').textContent = '(' + otherCount + ')';
+  // Recovery controls for a saved desktop connection must remain discoverable.
+  if (!integrationsSeen && connected) $('more-apps').open = true;
+  integrationsSeen = true;
   for (const app of integrations) {
     const card = document.createElement('article'); card.className = 'integration-card';
     const header = document.createElement('div'); header.className = 'cardhead';
@@ -267,9 +281,10 @@ function renderIntegrations() {
       restore.dataset.integrationAction = 'disconnect'; restore.dataset.available = 'yes'; restore.disabled = !!launching;
       restore.onclick = () => launchIntegration(app, 'disconnect'); actions.append(restore);
     }
-    card.append(header, detail, actions); container.append(card);
+    card.append(header, detail, actions);
+    (app.available || app.connected ? container : unavailable).append(card);
   }
-  if (!integrations.length) container.textContent = 'No additional integrations are available in this build.';
+  if (!ready.length) container.textContent = 'No additional apps are ready on this computer. Check the integrations below for requirements.';
 }
 async function loadIntegrations() {
   integrationsLoading = true; controls();
@@ -318,7 +333,7 @@ async function startService() {
   if (serviceStarting || launching) return;
   clearError(); serviceStarting = true; controls();
   try {
-    if (!sharedModels().length) throw Error('Choose at least one suitable model in Models for your apps, or download one from Model library.');
+    if (!sharedModels().length) throw Error('Choose a suitable model in Models → Your models, or add one in Models → Add models.');
     await runSave.catch(() => {}); await api('start', settings()); await syncEngineSettings(); renderModels();
   } catch (e) { error(e); } finally { serviceStarting = false; controls(); }
 }
@@ -350,9 +365,14 @@ $('client-default').onchange = () => {
 };
 $('automatic-default').onclick = () => { selected = ''; modelsChanged(true); };
 document.querySelectorAll('[data-configure-client]').forEach(button => button.onclick = () => {
-  $('model-client').value = button.dataset.configureClient; $('model-settings').open = true; renderModels();
-  $('model-settings').scrollIntoView({behavior: 'smooth', block: 'start'});
+  openModelSettings(button.dataset.configureClient);
 });
+function updateProjectSummary() {
+  const path = $('project').value.trim();
+  const name = path.replace(/[\\/]+$/, '').split(/[\\/]/).pop();
+  $('project-summary').textContent = path ? name || path : 'Portable Workspace';
+  $('project-summary').title = path || 'The Workspace folder on your drive';
+}
 function projectChanged() { controls(); $('project-warning').hidden = true; savePreferences().catch(() => {}); }
 $('project').onchange = projectChanged;
 $('project').oninput = controls;
@@ -372,13 +392,42 @@ $('chat-stop').onclick=stopChat;$('new-chat').onclick=()=>{messages=[];$('messag
 $('theme').onchange=async()=>{applyTheme($('theme').value);try{await api('preferences',{theme:$('theme').value})}catch(e){error(e)}};
 $('quit').onclick=async()=>{if((engine?.active||download?.active)&&!confirm('Stop the engine, pause downloads, and quit? Finish client tasks first.'))return;chatController?.abort();try{await api('download/cancel',{});await api('quit',{});closed=true;sessionStorage.removeItem(storeKey);$('connection').hidden=false;$('connection').textContent='Workstation closed. Eject after the launcher exits.';document.querySelectorAll('button,input,select,textarea').forEach(el=>el.disabled=true);}catch(e){error(e)}};
 $('copy').onclick=async()=>{try{await navigator.clipboard.writeText(JSON.stringify(lastReport,null,2));$('copy').textContent='Copied'}catch{error(Error('Clipboard access unavailable. Select and copy the report below.'))}};
+const pageCopy = {
+  workstation: ['Your AI. Anywhere.', 'Open an app. Your models go with you.'],
+  library: ['Your models', 'Choose what travels with you and which apps can use it.'],
+  chat: ['Chat', 'A simple conversation with a model on your drive.'],
+  'settings-page': ['Settings', 'Appearance, performance, and connection details.'],
+  guide: ['Plug in. Get going.', 'A few things to know before you start.']
+};
 function showPage(id) {
-  document.querySelectorAll('.nav').forEach(b => b.classList.toggle('selected', b.dataset.page === id));
+  if (!pageCopy[id]) return;
+  document.querySelectorAll('.nav').forEach(button => {
+    const current = button.dataset.page === id;
+    button.classList.toggle('selected', current);
+    if (current) button.setAttribute('aria-current', 'page'); else button.removeAttribute('aria-current');
+  });
   document.querySelectorAll('.page').forEach(page => page.hidden = page.id !== id);
-  $('heading').textContent = id === 'workstation' ? 'Your AI. Anywhere.' : document.querySelector('[data-page="' + id + '"]').textContent;
+  [$('heading').textContent, $('page-description').textContent] = pageCopy[id];
+  window.scrollTo(0, 0);
+  $('heading').focus({preventScroll: true});
+}
+function showModelTab(id) {
+  for (const panel of ['model-selection', 'model-downloads']) $(panel).hidden = panel !== id;
+  document.querySelectorAll('[data-model-tab]').forEach(button => {
+    const current = button.dataset.modelTab === id;
+    button.classList.toggle('selected', current);
+    button.setAttribute('aria-pressed', String(current));
+  });
+}
+function openModelSettings(client = 'all') {
+  showPage('library'); showModelTab('model-selection');
+  $('model-client').value = client; $('model-settings').open = true; renderModels();
 }
 document.querySelectorAll('.nav').forEach(button => button.onclick = () => showPage(button.dataset.page));
-$('go-library').onclick = () => showPage('library');
+document.querySelectorAll('[data-open-page]').forEach(button => button.onclick = () => showPage(button.dataset.openPage));
+document.querySelectorAll('[data-model-tab]').forEach(button => button.onclick = () => showModelTab(button.dataset.modelTab));
+$('manage-models').onclick = () => openModelSettings();
+$('go-library').onclick = () => { showPage('library'); showModelTab('model-downloads'); };
 (async () => {
   const preparation = await Promise.allSettled([
     (async () => { const p = await api('preferences'); $('theme').value = p.theme; applyTheme(p.theme); })(),

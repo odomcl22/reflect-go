@@ -40,3 +40,13 @@ The Phase 4.7 builder now sets a version-specific bundle/signing identifier, ret
 Validation: seven Python build-identity/packaging tests passed; full Go race suite passed; startup-handshake tests cover exact environment gating, no token in ordinary launcher output, write failure and duplicate owned launch refusal. Browser/native theme bridge checks, JavaScript syntax, Swift typecheck and all six rebuilt platform binaries passed. The rebuilt app's bundle and signing identifiers were checked to match and differ from Phase 4.6. Live macOS permission acceptance is checked separately from these automated tests.
 
 The corrected identity’s observed live launch produced one Documents permission prompt and zero code-requirement mismatches. This confirms that the alternating identity conflict stopped in that observation; user acceptance and the subsequent native Apps screen were not yet confirmed.
+
+## Interface simplification
+
+The Apps home now uses one divided list for the three portable CLIs, a compact optional project disclosure, a service status line, and a collapsed More apps section. Models has separate Your models and Add models views. Appearance, runtime controls, and diagnostics are grouped in Settings. Client-specific model shortcuts navigate directly to that client's preferences. The native Mac window starts at 1,040 × 760.
+
+Browser checks used the real Go backend with isolated state, real model inventory and portable client detection, plus live source assets. The review proxy blocked model/client/desktop launches and downloads; this was a UI regression check, not a fresh inference or desktop compatibility qualification. Verified navigation, per-client model selection/default persistence, optional project/task launch payloads, catalog filtering, available/unavailable integration disclosure, light/dark themes, and keyboard focus/Enter navigation. The home screen fits a 1,040 × 760 content area without scrolling; at 720 × 560 it retains readable launch controls and has no horizontal overflow. No unexpected browser errors were observed. The [new screenshot](media/reflect-go-apps-047-simplified.jpg) shows that isolated running interface.
+
+JavaScript syntax, DOM selector/label checks, Swift typecheck, seven Python build/packaging tests, and all six platform builds passed. The running user session was closed before updating Phase 4.7, following explicit approval. Existing phase state, models and client packs were preserved; older phases were not rebuilt.
+
+After reopening the updated native app, its authenticated backend responded as 0.4.7-preview with the engine stopped. Its served HTML, JavaScript and CSS matched the final source byte for byte. The isolated review server was then stopped.

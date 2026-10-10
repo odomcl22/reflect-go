@@ -12,20 +12,26 @@ If macOS asks for Documents or removable-drive access, allow it once. Phase 4.7 
 
 Keep the phase folder beside the shared **Models** and **Workspace** folders. Earlier phases remain preserved; do not run them on the same provider port simultaneously.
 
-1. If the library is empty, download or import a compatible text GGUF in **Model library**.
-2. Click **Open Codex CLI**, **Open Claude CLI**, or **Open OpenCode CLI**. The portable personal package includes these clients. Missing packs produce an explanation before starting the service.
+1. If the library is empty, download or import a compatible text GGUF in **Models → Add models**.
+2. Click **Open** beside Codex, Claude Code, or OpenCode. The portable personal package includes these clients. Missing packs produce an explanation before starting the service.
 3. Work in the client. Models load when requested; offering several models does not load them all into memory. Client permissions and project/tool workflows remain their own.
 4. Finish client work and quit Reflect Go before ejecting. Closing a browser tab does not quit the workstation. Closing the native Mac window does.
 
-A blank project starts in the drive's **Workspace**. To use another folder, paste its path or use **Choose folder…** in the native Mac window. This choice is remembered. A saved path missing on another computer is shown with a warning; clear or replace it before launching. Reflect Go does not install project build tools.
+On Apps, expand **Project** to choose a folder or enter an optional first task. A blank project starts in the drive's **Workspace**. To use another folder, paste its path or use **Choose folder…** in the native Mac window. This choice is remembered. A saved path missing on another computer is shown with a warning; clear or replace it before launching. Reflect Go does not install project build tools.
 
 ## Models offered to apps
 
-**Models for your apps** lets you offer all suitable models or select a specific set, with an optional starting model. Codex, Claude, and OpenCode CLI can each inherit shared choices or have their own saved selections. Selecting no models explicitly prevents that client from launching. A per-client model selection does not change the shared defaults.
+**Models → Your models** lets you offer all suitable models or select a specific set, with an optional starting model. Codex, Claude, and OpenCode CLI can each inherit shared choices or have their own saved selections. Selecting no models explicitly prevents that client from launching. A per-client model selection does not change the shared defaults.
 
 Codex and OpenCode receive model catalogs. Claude Code's launcher prints available model IDs for `/model`; its picker differs from the other clients. Reopen a client after changing its selection. Changing the running service's model set requires stopping it after active work finishes. New model files are discovered on the next service start.
 
-Opening a CLI raises an insufficient stopped-service context to its minimum: 8,192 for Codex/Claude and 16,384 for OpenCode. Other graphical adapters currently require 16,384. The memory screen still applies. Reflect Go refuses to interrupt an active service to change its configuration. **Advanced & performance** holds manual runtime controls and recommendations; **Chat** has its own **Start local chat** action for a smaller setup test.
+Opening a CLI raises an insufficient stopped-service context to its minimum: 8,192 for Codex/Claude and 16,384 for OpenCode. Other graphical adapters currently require 16,384. The memory screen still applies. Reflect Go refuses to interrupt an active service to change its configuration. **Settings → Local service** holds manual runtime controls and recommendations; **Chat** has its own **Start local chat** action for a smaller setup test.
+
+## A simpler workspace
+
+**Apps** focuses on the three portable clients, a compact project choice and local service status. The model count opens **Models**; the settings icon beside each client opens its model preferences. **More apps** keeps desktop and other integrations available without filling the home screen; unavailable integrations are listed separately inside it. A saved desktop connection opens this section so restoration controls remain easy to find.
+
+**Models** separates your saved selections from **Add models**, where downloads, filters and import live. **Settings** groups appearance, runtime controls and diagnostics. Light, Dark and Follow system use the same control sizes, type scale and keyboard focus treatment.
 
 ## More apps
 
