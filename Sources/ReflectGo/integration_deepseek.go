@@ -1,9 +1,13 @@
 package main
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
+	"net/http"
 	"net/url"
 	"os"
 	"os/exec"
@@ -150,6 +154,10 @@ func launchDeepSeekContext(ctx context.Context, root, project string, c Connecti
 					stopAndWaitAdditionalHarness(cmd, session.done)
 					return "", err
 				}
+				if err := prepareDeepSeekWorkspace(ctx, address, dir); err != nil {
+					stopAndWaitAdditionalHarness(cmd, session.done)
+					return "", fmt.Errorf("DeepSeek could not open the selected workspace: %w", err)
+				}
 				session.url = address
 				deepSeekSessions.items[sessionKey] = session
 				if err := openBrowser(address); err != nil {
@@ -159,6 +167,55 @@ func launchDeepSeekContext(ctx context.Context, root, project string, c Connecti
 			}
 		}
 	}
+}
+
+// The web harness maintains its own workspace registry. Its process working
+// directory alone does not select a project in the UI, even in a fresh profile.
+func prepareDeepSeekWorkspace(ctx context.Context, address, dir string) error {
+	if deepSeekReadyURL("dsh web: "+address) != address || address == "" {
+		return errors.New("invalid local DeepSeek address")
+	}
+	id := fmt.Sprintf("reflect-go-%d", time.Now().UnixNano())
+	payload, err := json.Marshal(map[string]any{
+		"type": "client-request", "rpcId": id, "method": "workspace.create",
+		"payload": map[string]string{"path": dir},
+	})
+	if err != nil {
+		return err
+	}
+	req, err := http.NewRequestWithContext(ctx, "POST", address+"/api/workspace.create", bytes.NewReader(payload))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Origin", address)
+	response, err := localHTTP.Do(req)
+	if err != nil {
+		return err
+	}
+	defer response.Body.Close()
+	if response.StatusCode != http.StatusOK {
+		return fmt.Errorf("workspace registration returned HTTP %d", response.StatusCode)
+	}
+	var result struct {
+		RPCID  string `json:"rpcId"`
+		Result struct {
+			OK    bool `json:"ok"`
+			Value struct {
+				Workspace struct {
+					ID   string `json:"workspaceId"`
+					Path string `json:"path"`
+				} `json:"workspace"`
+			} `json:"value"`
+		} `json:"result"`
+	}
+	if err := json.NewDecoder(io.LimitReader(response.Body, 64<<10)).Decode(&result); err != nil {
+		return errors.New("DeepSeek returned an invalid workspace response")
+	}
+	if result.RPCID != id || !result.Result.OK || result.Result.Value.Workspace.ID == "" || result.Result.Value.Workspace.Path != dir {
+		return errors.New("DeepSeek did not confirm the selected workspace")
+	}
+	return nil
 }
 
 func closeDeepSeekHarnesses(root string) {
@@ -258,13 +315,47 @@ func deepSeekExecutableCommand(client string, args []string) (*exec.Cmd, error) 
 		entry = resolved
 	}
 	if strings.EqualFold(filepath.Ext(entry), ".js") || strings.EqualFold(filepath.Ext(entry), ".mjs") {
-		node, err := exec.LookPath("node")
+		node, err := deepSeekNode(client)
 		if err != nil {
 			return nil, errors.New("DeepSeek Harness requires Node.js on this computer")
 		}
 		return exec.Command(node, append([]string{entry}, args...)...), nil
 	}
 	return exec.Command(client, args...), nil
+}
+
+// Finder-launched applications do not inherit an interactive shell's PATH.
+// Check normal Node installation locations without sourcing shell profiles.
+func deepSeekNode(client string) (string, error) {
+	if node, err := exec.LookPath("node"); err == nil {
+		return node, nil
+	}
+	home, _ := os.UserHomeDir()
+	name := "node"
+	if runtime.GOOS == "windows" {
+		name += ".exe"
+	}
+	candidates := []string{filepath.Join(filepath.Dir(client), name)}
+	if home != "" {
+		candidates = append(candidates, filepath.Join(home, ".local", "bin", name))
+	}
+	if runtime.GOOS == "windows" {
+		for _, base := range []string{os.Getenv("ProgramFiles"), os.Getenv("LOCALAPPDATA")} {
+			if filepath.IsAbs(base) {
+				candidates = append(candidates, filepath.Join(base, "nodejs", name), filepath.Join(base, "Programs", "nodejs", name))
+			}
+		}
+	} else {
+		candidates = append(candidates, "/opt/homebrew/bin/node", "/usr/local/bin/node", "/usr/bin/node")
+	}
+	for _, candidate := range candidates {
+		if filepath.IsAbs(candidate) {
+			if path, err := exec.LookPath(candidate); err == nil {
+				return path, nil
+			}
+		}
+	}
+	return "", errors.New("Node.js was not found")
 }
 
 var deepSeekURLPattern = regexp.MustCompile(`(?m)^dsh web: (http://127\.0\.0\.1:[0-9]+)(?:\s|$)`)

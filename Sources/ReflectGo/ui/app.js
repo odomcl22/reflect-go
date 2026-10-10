@@ -204,6 +204,7 @@ async function poll() {
   if (closed) return;
   try {
     const data = await api('status'), wasLocked = !!(engine?.active || engine?.preparing);
+    $('app-version').textContent = data.version || 'Preview';
     engine = data.engine; const first = !initialized;
     if (!settingsRestored) { setSettings(engine.savedSettings || engine.settings); settingsRestored = true; }
     $('metal').disabled = !data.platform.startsWith('macos'); $('vulkan').disabled = data.platform.startsWith('macos');

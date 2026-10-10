@@ -216,6 +216,10 @@ func TestInstalledCodexDesktopCatalog(t *testing.T) {
 		t.Skip("set REFLECT_GO_TEST_CODEX_BINARY")
 	}
 	home := t.TempDir()
+	model := os.Getenv("REFLECT_GO_TEST_MODEL_ID")
+	if model == "" {
+		model = "reflect-test"
+	}
 	base := "http://127.0.0.1:1/reflect-go/test"
 	if engine := os.Getenv("REFLECT_GO_TEST_ENGINE_BASE"); engine != "" {
 		key, err := os.ReadFile(os.Getenv("REFLECT_GO_TEST_ENGINE_KEY_FILE"))
@@ -223,13 +227,13 @@ func TestInstalledCodexDesktopCatalog(t *testing.T) {
 			t.Fatal(err)
 		}
 		var closeProxy func()
-		base, closeProxy, err = startCodexDesktopProxy(Connection{Base: engine, Context: 49152}, strings.TrimSpace(string(key)), []ClientModel{{ID: "reflect-test", Name: "Test model"}})
+		base, closeProxy, err = startCodexDesktopProxy(Connection{Base: engine, Context: 49152}, strings.TrimSpace(string(key)), []ClientModel{{ID: model, Name: "Test model"}})
 		if err != nil {
 			t.Fatal(err)
 		}
 		defer closeProxy()
 	}
-	j, err := planDesktopProfile(home, "test-host", "codex-desktop", base, "test-key", Connection{ID: "reflect-test", Context: 49152}, []ClientModel{{ID: "reflect-test", Name: "Test model"}})
+	j, err := planDesktopProfile(home, "test-host", "codex-desktop", base, "test-key", Connection{ID: model, Context: 49152}, []ClientModel{{ID: model, Name: "Test model"}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -272,12 +276,12 @@ func TestInstalledCodexDesktopCatalog(t *testing.T) {
 	rpc(1, "initialize", map[string]any{"clientInfo": map[string]string{"name": "reflect_go_test", "version": "0.4.8"}, "capabilities": map[string]bool{"experimentalApi": true}})
 	encoder.Encode(map[string]any{"method": "initialized"})
 	result := rpc(2, "model/list", map[string]any{"includeHidden": true})
-	if !bytes.Contains(result["result"], []byte("reflect-test")) {
+	if !bytes.Contains(result["result"], []byte(model)) {
 		t.Fatalf("local model missing: %s", result["result"])
 	}
 	t.Log("Installed app-server loaded Reflect Go's model catalog without touching the host account")
 	if os.Getenv("REFLECT_GO_TEST_ENGINE_BASE") != "" {
-		started := rpc(3, "thread/start", map[string]any{"model": "reflect-test", "cwd": home, "approvalPolicy": "never", "sandbox": "read-only", "ephemeral": true})
+		started := rpc(3, "thread/start", map[string]any{"model": model, "cwd": home, "approvalPolicy": "never", "sandbox": "read-only", "ephemeral": true})
 		var result struct {
 			Thread struct {
 				ID string `json:"id"`

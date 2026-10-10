@@ -4,6 +4,8 @@ Open Reflect Go, then choose your app. Project folder and offered models are opt
 
 ## Desktop connections
 
+The published 0.4.8 ZIPs have a desktop startup bug that can show “Connection unavailable.” Source fixes are being tested before replacement packages are released. Use built-in chat or the portable CLI clients in the meantime. See the [desktop test results](PREVIEW_0_4_8_VALIDATION.md#follow-up-desktop-testing).
+
 - **Claude Desktop:** maps up to five eligible local models to its model choices. Desktop requests need a large context even for a short greeting. Reflect Go starts at 49,152 tokens, uses a compact Q4 cache for verified compatible model architectures, and limits replies to 4,096 tokens. Unsupported context/model combinations are rejected before connecting.
 - **ChatGPT / Codex Desktop:** adds a Reflect Go model catalog and a local Responses router. Existing account credentials are preserved. Local model requests stay local and never fall back to a cloud model. Selecting an existing cloud model still uses its normal provider and account. Start a fresh conversation when switching providers; local remote-compaction is not supported.
 - **OpenCode Desktop:** adds a `reflect_go` provider to its JSON/JSONC configuration. Existing providers, comments, permissions and account settings are retained. A custom environment or project configuration can override global defaults.

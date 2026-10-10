@@ -44,7 +44,7 @@ func connection(root string) (Connection, string, error) {
 		return c, "", err
 	}
 	port, e := strconv.Atoi(u.Port())
-	if e != nil || port < 1024 || port > 65535 || c.Base != fmt.Sprintf("http://127.0.0.1:%d", port) || c.Context < 512 || c.Context > 32768 {
+	if e != nil || port < 1024 || port > 65535 || c.Base != fmt.Sprintf("http://127.0.0.1:%d", port) || c.Context < 512 || c.Context > 131072 {
 		return c, "", errors.New("invalid local provider settings")
 	}
 	keyPath, err := statePath(root, "provider-key")

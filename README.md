@@ -40,6 +40,11 @@ physical Windows and Linux computers is still in progress. See
 [release notes and checksums](https://github.com/odomcl22/reflect-go/releases/tag/v0.4.8-preview)
 and [testing status](docs/PREVIEW_0_4_8_VALIDATION.md).
 
+**Desktop connection issue in the 0.4.8 downloads:** the local service can report
+“Connection unavailable” when opening a desktop app. A fix is in the source;
+updated download packages are awaiting desktop testing. For now, use built-in
+chat or a portable CLI. [Follow the desktop test results](docs/PREVIEW_0_4_8_VALIDATION.md#follow-up-desktop-testing).
+
 ## Get started
 
 1. **Extract the entire ZIP** to your external drive or a folder on your computer.

@@ -158,8 +158,16 @@ func planClaudeProfile(home, host, base, key string) (profileJournal, error) {
 	normal, third, meta, profile := claudeProfilePaths(home)
 	if _, err := os.Stat(profile); err == nil {
 		v, e := profileJSON(profile)
-		if e != nil || len(v) != 0 {
-			return j, errors.New("Reflect Go's desktop profile already exists; restore the recorded connection first")
+		if e != nil {
+			return j, e
+		}
+		// Claude can repopulate an inactive profile with UI defaults and a
+		// placeholder credential after restoration. Preserve those values in
+		// the journal; only an existing routing configuration blocks reuse.
+		for _, field := range []string{"inferenceProvider", "inferenceGatewayBaseUrl", "inferenceGatewayAuthScheme", "deploymentDisplayName"} {
+			if raw := v[field]; len(raw) != 0 && !equalJSON(raw, json.RawMessage(`null`)) && !equalJSON(raw, json.RawMessage(`""`)) {
+				return j, errors.New("Reflect Go's desktop profile already exists; restore the recorded connection first")
+			}
 		}
 	} else if !os.IsNotExist(err) {
 		return j, err
@@ -167,6 +175,9 @@ func planClaudeProfile(home, host, base, key string) (profileJournal, error) {
 	metadata, err := profileJSON(meta)
 	if err != nil {
 		return j, err
+	}
+	if equalJSON(metadata["appliedId"], json.RawMessage(`"`+claudeProfileID+`"`)) {
+		return j, errors.New("Reflect Go's desktop profile is still selected; restore the recorded connection first")
 	}
 	var entries []map[string]any
 	if raw := metadata["entries"]; len(raw) > 0 && json.Unmarshal(raw, &entries) != nil {

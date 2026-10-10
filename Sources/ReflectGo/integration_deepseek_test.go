@@ -4,11 +4,77 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 )
+
+func TestDeepSeekFindsNodeWithoutShellPath(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("PATH", "")
+	name := "node"
+	if runtime.GOOS == "windows" {
+		name += ".exe"
+	}
+	node := filepath.Join(dir, name)
+	if err := os.WriteFile(node, []byte("fixture, not executed"), 0700); err != nil {
+		t.Fatal(err)
+	}
+	entry := filepath.Join(dir, "dsh.js")
+	cmd, err := deepSeekExecutableCommand(entry, []string{"web"})
+	if err != nil || cmd.Path != node || len(cmd.Args) != 3 || cmd.Args[1] != entry {
+		t.Fatalf("desktop launch did not find Node beside dsh: %v, %v", cmd, err)
+	}
+}
+
+func TestDeepSeekRegistersSelectedWorkspace(t *testing.T) {
+	dir := t.TempDir()
+	for _, outcome := range []string{"success", "refused", "wrong path", "wrong request", "unavailable"} {
+		t.Run(outcome, func(t *testing.T) {
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				var request struct {
+					Type    string `json:"type"`
+					ID      string `json:"rpcId"`
+					Method  string `json:"method"`
+					Payload struct {
+						Path string `json:"path"`
+					} `json:"payload"`
+				}
+				if json.NewDecoder(r.Body).Decode(&request) != nil || r.Method != "POST" || r.URL.Path != "/api/workspace.create" || request.Type != "client-request" || request.Method != "workspace.create" || request.Payload.Path != dir || r.Header.Get("Origin") != "http://"+r.Host {
+					t.Error("workspace selection was not sent to the local harness")
+					http.Error(w, "invalid request", 400)
+					return
+				}
+				if outcome == "unavailable" {
+					http.Error(w, "unavailable", 503)
+					return
+				}
+				path := dir
+				if outcome == "wrong path" {
+					path = "/another-project"
+				}
+				if outcome == "wrong request" {
+					request.ID = "different-request"
+				}
+				json.NewEncoder(w).Encode(map[string]any{"rpcId": request.ID, "result": map[string]any{"ok": outcome != "refused", "value": map[string]any{"workspace": map[string]string{"workspaceId": "test-workspace", "path": path}}}})
+			}))
+			defer server.Close()
+			err := prepareDeepSeekWorkspace(context.Background(), server.URL, dir)
+			if (err == nil) != (outcome == "success") {
+				t.Fatalf("workspace registration: %v", err)
+			}
+		})
+	}
+	for _, address := range []string{"", "https://example.com", "http://127.0.0.1:1234/elsewhere"} {
+		if prepareDeepSeekWorkspace(context.Background(), address, dir) == nil {
+			t.Fatal("accepted unsafe harness address", address)
+		}
+	}
+}
 
 func TestCancelledGraphicalLaunchDoesNotPrepareState(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())

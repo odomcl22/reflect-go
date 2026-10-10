@@ -2,6 +2,27 @@
 
 Checked October 10, 2026 on an Apple M1 Mac with 16 GiB RAM. Availability, a compiled artifact, a protocol test, and a qualified desktop workflow are different levels of evidence.
 
+## Follow-up desktop testing
+
+Live testing found a startup bug in the published 0.4.8 ZIPs: desktop launch requests 49,152 context tokens, but the saved-provider connection validator rejected anything above 32,768. The source now accepts the same supported range as the engine. Regression tests exercise authenticated readiness through the saved provider record, including invalid-context rejection.
+
+These results use a locally patched Mac backend and Qwen3 4B Instruct 2507 Q4_K_M on llama.cpp/Metal. They do **not** qualify the original ZIPs or a complete coding workflow.
+
+| Application | Observed result | Remaining qualification |
+| --- | --- | --- |
+| Claude Desktop 2.31226.1 | The native window showed the Reflect Go connection and returned the requested local reply. Its first request contained 33,820 prompt tokens and took about 492 seconds. | Cold latency is unsuitable for a quick-start experience on this M1; tool use, cancellation and longer conversations remain unqualified. Native Claude model names are aliases mapped to the offered GGUF models. |
+| Codex in ChatGPT Desktop 26.1002.52244 | The installed desktop app-server discovered the actual offered model and completed a local turn through the private Responses router in about 14 seconds, using an isolated profile. | The native model picker, live desktop restart and end-to-end desktop tool workflow still need a separate test. The desktop hosting the test controller was not restarted. |
+| OpenCode Desktop 1.18.35 | The Reflect Go model appeared in the picker, and a real local answer appeared in the native window after 57 seconds without a refresh or restart. | The older installed 1.18.10 produced a reply but stayed on Thinking until restarted. That live-display failure did not recur in the fresh 1.18.35 test. Coding/tool workflows remain unqualified. |
+| DeepSeek Harness 0.1.1-rc.2 | Its browser interface returned a local reply in about 55 seconds using an isolated profile. A second, fresh launch from the native Mac app selected the project and model automatically and returned a reply in 51 seconds. | Coding/tool workflows and physical Windows/Linux launches remain unqualified. |
+
+OpenCode's renderer logged event-stream failures, including on the newer version that completed the visible reply. Similar symptoms are reported in upstream issues [41986](https://github.com/anomalyco/opencode/issues/41986) and [46733](https://github.com/anomalyco/opencode/issues/46733); that is a lead, not proof of the exact cause on this Mac.
+
+Additional source fixes address Claude reconnecting after it repopulates an inactive profile with defaults, DeepSeek finding an installed Node.js when launched from Finder, and registering the selected DeepSeek workspace before opening its browser. The footer now displays the running backend version.
+
+Live Disconnect restored both Claude and OpenCode without signing out. A subsequent Claude reconnect succeeded. Quitting Reflect Go then restored all 12 journaled Claude fields to their previous values, removed the restore record, and closed the owned local services. A final Quit also restored all three journaled OpenCode fields after the 1.18.35 test and stopped the fresh DeepSeek instance. The existing Ollama-launched DeepSeek instance was left separate.
+
+The full Go suite passes, and the changed backend compiles for macOS, Windows and Linux on x64 and ARM64. Compilation is not physical-device qualification. No updated public archives have been published from this follow-up; desktop release qualification remains open.
+
 ## Completed checks
 
 - Complete Go test suite passed. New tests cover local/native routing, gzip/zstd requests, account-header isolation, context limits, bounded Claude output, JSON/TOML profile restoration, JSONC comments, temporary credential cleanup and concurrent-setting protection. Existing restart consent, cancellation and rollback tests also pass.

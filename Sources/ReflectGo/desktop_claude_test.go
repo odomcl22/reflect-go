@@ -87,13 +87,17 @@ func TestClaudeProfilePlanAndRestorePreserveHostSettings(t *testing.T) {
 }
 
 func TestClaudeProfilePlanRejectsExistingOwnedEntry(t *testing.T) {
-	for _, existing := range []string{"profile", "entry", "invalid-list"} {
+	for _, existing := range []string{"profile", "endpoint", "entry", "selected", "invalid-list"} {
 		t.Run(existing, func(t *testing.T) {
 			home := t.TempDir()
 			_, _, meta, profile := claudeProfilePaths(home)
 			switch existing {
 			case "profile":
 				fixtureProfile(t, profile, map[string]any{"inferenceProvider": "user-provider"})
+			case "endpoint":
+				fixtureProfile(t, profile, map[string]any{"inferenceGatewayBaseUrl": "http://127.0.0.1:12345"})
+			case "selected":
+				fixtureProfile(t, meta, map[string]any{"appliedId": claudeProfileID})
 			case "entry":
 				fixtureProfile(t, meta, map[string]any{"entries": []any{map[string]any{"id": claudeProfileID, "name": "Already configured"}}})
 			case "invalid-list":
@@ -103,6 +107,36 @@ func TestClaudeProfilePlanRejectsExistingOwnedEntry(t *testing.T) {
 				t.Fatal("existing or unrecognized profile was accepted")
 			}
 		})
+	}
+}
+
+func TestClaudeReconnectPreservesDefaultsAddedByDesktop(t *testing.T) {
+	home := t.TempDir()
+	_, _, _, profile := claudeProfilePaths(home)
+	journal := filepath.Join(home, "restore.json")
+	cycle := func() {
+		t.Helper()
+		j, err := planClaudeProfile(home, "host", "http://127.0.0.1:12345", "local-test-key")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := applyProfileJournal(journal, j); err != nil {
+			t.Fatal(err)
+		}
+		if err := restoreProfileJournal(journal, j.Host, j.Home); err != nil {
+			t.Fatal(err)
+		}
+	}
+	cycle()
+	// Observed after restarting the installed Claude desktop on disconnect.
+	defaults := map[string]any{"chatTabEnabled": true, "builtinBrowserEnabled": true, "inferenceCredentialKind": "static", "inferenceGatewayApiKey": "vendor-placeholder"}
+	fixtureProfile(t, profile, defaults)
+	cycle()
+	got, err := profileJSON(profile)
+	want, _ := json.Marshal(defaults)
+	actual, _ := json.Marshal(got)
+	if err != nil || !equalJSON(actual, want) {
+		t.Fatal("reconnect did not restore Claude's inactive profile defaults")
 	}
 }
 
