@@ -30,14 +30,15 @@ import (
 var uiFiles embed.FS
 
 type RunSettings struct {
-	Model       string   `json:"model"`
-	Enabled     []string `json:"enabled,omitempty"`
-	Host        string   `json:"host,omitempty"`
-	Context     int      `json:"context"`
-	Backend     string   `json:"backend"`
-	Threads     int      `json:"threads"`
-	Temperature float64  `json:"temperature"`
-	Port        int      `json:"port"`
+	Model       string       `json:"model"`
+	Enabled     []string     `json:"enabled"`
+	Host        string       `json:"host,omitempty"`
+	Context     int          `json:"context"`
+	Backend     string       `json:"backend"`
+	Threads     int          `json:"threads"`
+	Temperature float64      `json:"temperature"`
+	Port        int          `json:"port"`
+	configured  *RunSettings // Original shared choices before adding client-specific gateway models.
 }
 
 func defaultRunSettings() RunSettings {
@@ -55,21 +56,22 @@ func (s RunSettings) options() (Options, error) {
 }
 
 type EngineStatus struct {
-	Active         bool        `json:"active"`
-	Ready          bool        `json:"ready"`
-	Stopping       bool        `json:"stopping"`
-	Preparing      bool        `json:"preparing"`
-	Testing        bool        `json:"testing"`
-	Status         string      `json:"status"`
-	Error          string      `json:"error"`
-	Log            string      `json:"log"`
-	Generated      int         `json:"generated"`
-	Speed          float64     `json:"speed"`
-	ResidentBytes  uint64      `json:"residentBytes"`
-	StartupSeconds float64     `json:"startupSeconds"`
-	Settings       RunSettings `json:"settings"`
-	Backend        string      `json:"backend"`
-	Device         string      `json:"device"`
+	Active         bool         `json:"active"`
+	Ready          bool         `json:"ready"`
+	Stopping       bool         `json:"stopping"`
+	Preparing      bool         `json:"preparing"`
+	Testing        bool         `json:"testing"`
+	Status         string       `json:"status"`
+	Error          string       `json:"error"`
+	Log            string       `json:"log"`
+	Generated      int          `json:"generated"`
+	Speed          float64      `json:"speed"`
+	ResidentBytes  uint64       `json:"residentBytes"`
+	StartupSeconds float64      `json:"startupSeconds"`
+	Settings       RunSettings  `json:"settings"`
+	SavedSettings  *RunSettings `json:"savedSettings,omitempty"`
+	Backend        string       `json:"backend"`
+	Device         string       `json:"device"`
 }
 type EngineManager struct {
 	startMu    sync.Mutex // Serialize preparation and cancellation before another start.
@@ -103,6 +105,8 @@ func newManager(root string) *EngineManager {
 			m.status.Error = "Saved settings could not be read. Review the restored defaults."
 		}
 	}
+	restored := m.status.Settings
+	m.status.SavedSettings = &restored
 	return m
 }
 func (m *EngineManager) snapshot() EngineStatus { m.mu.Lock(); defer m.mu.Unlock(); return m.status }
@@ -113,6 +117,12 @@ func (m *EngineManager) start(s RunSettings) error {
 	if err != nil {
 		return err
 	}
+	configured := s
+	if s.configured != nil {
+		configured = *s.configured
+	}
+	configured.configured = nil
+	s.configured = nil
 	m.mu.Lock()
 	if m.status.Active || m.status.Preparing {
 		m.mu.Unlock()
@@ -180,8 +190,12 @@ func (m *EngineManager) start(s RunSettings) error {
 	defer log.Close()
 	self, _ := os.Executable()
 	args := []string{"_supervise", "gateway", "--model", s.Model, "--context", strconv.Itoa(s.Context), "--backend", s.Backend, "--temperature", strconv.FormatFloat(s.Temperature, 'f', -1, 64), "--port", strconv.Itoa(s.Port)}
-	if len(s.Enabled) > 0 {
-		args = append(args, "--enabled-ids", strings.Join(s.Enabled, ","))
+	if s.Enabled != nil {
+		enabled := strings.Join(s.Enabled, ",")
+		if enabled == "" {
+			enabled = "none" // An explicit empty selection must not expose every model.
+		}
+		args = append(args, "--enabled-ids", enabled)
 	}
 	if s.Threads > 0 {
 		args = append(args, "--threads", strconv.Itoa(s.Threads))
@@ -216,10 +230,10 @@ func (m *EngineManager) start(s RunSettings) error {
 	m.announced = false
 	m.enginePID = 0
 	m.failures = 0
-	m.status = EngineStatus{Active: true, Status: "Starting model service", Settings: s}
+	m.status = EngineStatus{Active: true, Status: "Starting model service", Settings: s, SavedSettings: &configured}
 	m.mu.Unlock()
 	if prefs, e := statePath(m.root, "workstation-web.json"); e == nil {
-		writeJSON(prefs, s)
+		writeJSON(prefs, configured)
 	}
 	go func() {
 		err := cmd.Wait()
@@ -499,6 +513,10 @@ func serveUI(root string) error {
 	defer manager.waitStopped()
 	mux := http.NewServeMux()
 	productRoutes(mux, root, manager, downloads)
+	integrations := newIntegrationManager(root, manager)
+	integrations.routes(mux)
+	defer integrations.close()
+	launcher := newClientLauncher(root, manager)
 	quit := make(chan struct{}, 1)
 	if os.Getenv("REFLECT_GO_UI_OWNED") == "1" {
 		go func() {
@@ -575,6 +593,16 @@ func serveUI(root string) error {
 		if !decode(w, r, &s) {
 			return
 		}
+		prefs, err := loadLaunchPreferences(root)
+		if err != nil {
+			http.Error(w, err.Error(), 400)
+			return
+		}
+		if err := validateModelIDs(s.Enabled); err != nil {
+			http.Error(w, err.Error(), 400)
+			return
+		}
+		s = gatewayRunSettings(s, prefs)
 		if e := manager.start(s); e != nil {
 			http.Error(w, e.Error(), 400)
 			return
@@ -601,35 +629,7 @@ func serveUI(root string) error {
 		}
 		send(w, map[string]string{"response": result})
 	})
-	mux.HandleFunc("/api/client", func(w http.ResponseWriter, r *http.Request) {
-		var p struct {
-			Client  string `json:"client"`
-			Project string `json:"project"`
-			Task    string `json:"task"`
-		}
-		if !decode(w, r, &p) {
-			return
-		}
-		if !manager.snapshot().Ready {
-			http.Error(w, "Start this workstation's engine first", 409)
-			return
-		}
-		if _, e := portableClient(root, p.Client, false); e != nil {
-			http.Error(w, e.Error(), 400)
-			return
-		}
-		var projectErr error
-		p.Project, projectErr = resolveProject(root, p.Project)
-		if projectErr != nil {
-			http.Error(w, projectErr.Error(), 400)
-			return
-		}
-		if e := launchTerminal(root, p.Client, p.Project, p.Task); e != nil {
-			http.Error(w, e.Error(), 400)
-			return
-		}
-		send(w, map[string]bool{"opened": true})
-	})
+	launcher.routes(mux, manager, decode, send)
 	mux.HandleFunc("/api/quit", func(w http.ResponseWriter, r *http.Request) {
 		var payload struct{}
 		if !decode(w, r, &payload) {

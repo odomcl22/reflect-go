@@ -38,18 +38,18 @@ def package(bundle,output,starter=None):
     clean={k:manifest[k]for k in members}
     for name,data in replacements.items():clean[name]=hashlib.sha256(data).hexdigest()
     if starter:clean['models/'+model['filename']]=model['sha256']
-    prefix='Reflect Go/Phase 4.6/'
+    prefix='Reflect Go/Phase 4.7/'
     with zipfile.ZipFile(output,'x',compression=zipfile.ZIP_DEFLATED,compresslevel=6,allowZip64=True)as z:
         z.writestr('Reflect Go/Models/','')
         for rel,path in sorted(members.items()):
             if rel in replacements:z.writestr(prefix+rel,replacements[rel])
             else:z.write(path,prefix+rel)
         z.writestr(prefix+'manifest.json',json.dumps(clean,indent=2)+'\n')
-        z.writestr('Reflect Go/DOWNLOAD-README.txt','Reflect Go engineering preview. Start the platform launcher inside Phase 4.6.\nCodex and OpenCode packs are included; proprietary Claude binaries are excluded from this shareable archive.\nPrepare Claude from its official vendor package for a personal copy; see the source repository documentation.\n'+('The small starter model demonstrates chat, not coding reliability.\n'if starter else'No model weights included. Use Model library to download or import a model.\n'))
+        z.writestr('Reflect Go/DOWNLOAD-README.txt','Reflect Go engineering preview. Start the platform launcher inside Phase 4.7.\nCodex and OpenCode packs are included; proprietary Claude binaries are excluded from this shareable archive.\nPrepare Claude from its official vendor package for a personal copy; see the source repository documentation.\n'+('The small starter model demonstrates chat, not coding reliability.\n'if starter else'No model weights included. Use Model library to download or import a model.\n'))
         if starter:z.write(starter,'Reflect Go/Models/'+model['filename'],compress_type=zipfile.ZIP_STORED)
     with output.open('rb')as f:digest=hashlib.file_digest(f,'sha256').hexdigest()
     output.with_suffix(output.suffix+'.sha256').write_text(digest+'  '+output.name+'\n')
     print(output)
 
 if __name__=='__main__':
-    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--bundle',type=Path,default=ROOT/'dist/Reflect Go/Phase 4.6');p.add_argument('--output',type=Path,required=True);p.add_argument('--starter',type=Path);a=p.parse_args();package(a.bundle.resolve(),a.output.resolve(),a.starter.resolve()if a.starter else None)
+    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--bundle',type=Path,default=ROOT/'dist/Reflect Go/Phase 4.7');p.add_argument('--output',type=Path,required=True);p.add_argument('--starter',type=Path);a=p.parse_args();package(a.bundle.resolve(),a.output.resolve(),a.starter.resolve()if a.starter else None)

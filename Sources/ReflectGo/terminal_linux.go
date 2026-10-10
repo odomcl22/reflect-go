@@ -6,9 +6,12 @@ import (
 	"os/exec"
 )
 
-func launchTerminal(root, client, project, task string) error {
+func launchTerminal(root, client, project, task string, profile ...string) error {
 	self, _ := os.Executable()
 	args := []string{self, "connect", client, "--project", project, "--hold"}
+	if len(profile) > 0 && profile[0] != "" {
+		args = append(args, "--launch-profile", profile[0])
+	}
 	if task != "" {
 		args = append(args, "--task", task)
 	}

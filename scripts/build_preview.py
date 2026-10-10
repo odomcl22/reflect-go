@@ -17,7 +17,7 @@ def assemble(source, destination, refresh=False):
     if destination.exists() and not refresh:
         raise SystemExit('Destination exists; choose a fresh directory to preserve prior builds.')
     if not (source / 'manifest.json').is_file():
-        raise SystemExit('A prepared Phase 4.5 software package is required.')
+        raise SystemExit('A prepared Phase 4.6 software package is required.')
     # Copy software only. Hard links reduce space for immutable runtime/client
     # packs; unlink all rebuilt files before writing. The app is a separate copy.
     if not refresh:
@@ -43,15 +43,15 @@ def assemble(source, destination, refresh=False):
         subprocess.run(['/usr/bin/xcrun','swiftc','-parse-as-library','-O','-target',arch+'-apple-macosx13.3','-module-cache-path',str(ROOT/'.build/module-cache'),str(ROOT/'Sources/PortableWorkstation.swift'),'-o',str(out)],check=True)
     app=destination/'Reflect Go.app'
     subprocess.run(['/usr/bin/lipo','-create',*slices,'-output',str(app/'Contents/MacOS/ReflectGo')],check=True)
-    info_path=app/'Contents/Info.plist';info=plistlib.loads(info_path.read_bytes());info.update(CFBundleShortVersionString='0.4.6',CFBundleVersion='46');info_path.write_bytes(plistlib.dumps(info))
+    info_path=app/'Contents/Info.plist';info=plistlib.loads(info_path.read_bytes());info.update(CFBundleShortVersionString='0.4.7',CFBundleVersion='47',NSDocumentsFolderUsageDescription='Reflect Go reads its portable software, model weights and settings in the folder you open it from.');info_path.write_bytes(plistlib.dumps(info))
     subprocess.run(['/usr/bin/codesign','--force','--sign','-',str(app)],check=True)
     for display,name in [('Codex','codex'),('Claude','claude'),('OpenCode','opencode')]:
         path=destination/('Connect '+display+'.command');path.unlink(missing_ok=True)
         path.write_text('#!/bin/sh\nROOT=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)\nexec /bin/sh "$ROOT/Reflect Go.sh" connect '+name+' --project "${1-}" --hold\n');path.chmod(0o755)
-    for name in ('README.md','VALIDATION.md','ROADMAP.md'):
+    for name in ('README.md','VALIDATION.md','ROADMAP.md','HARNESS_COMPATIBILITY.md'):
         target=destination/name;target.unlink(missing_ok=True)
-        doc=ROOT/'docs'/({'README.md':'PREVIEW_0_4_6.md','VALIDATION.md':'PREVIEW_0_4_6_VALIDATION.md','ROADMAP.md':'ROADMAP.md'}[name])
-        if doc.exists():target.write_text(doc.read_text().replace('(PREVIEW_0_4_6_VALIDATION.md)', '(VALIDATION.md)'))
+        doc=ROOT/'docs'/({'README.md':'PREVIEW_0_4_7.md','VALIDATION.md':'PREVIEW_0_4_7_VALIDATION.md','ROADMAP.md':'ROADMAP.md','HARNESS_COMPATIBILITY.md':'HARNESS_COMPATIBILITY.md'}[name])
+        if doc.exists():target.write_text(doc.read_text().replace('(PREVIEW_0_4_7_VALIDATION.md)', '(VALIDATION.md)'))
     # Runtime/client bytes are unchanged hard links from the verified source;
     # preserve their hashes and recalculate everything rebuilt above.
     manifest=json.loads((source/'manifest.json').read_text())
@@ -68,9 +68,9 @@ def assemble(source, destination, refresh=False):
 
 if __name__=='__main__':
     parser=argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--source',type=Path,default=ROOT/'dist/Reflect Go/Phase 4.5')
-    parser.add_argument('--destination',type=Path,default=ROOT/'dist/Reflect Go/Phase 4.6')
+    parser.add_argument('--source',type=Path,default=ROOT/'dist/Reflect Go/Phase 4.6')
+    parser.add_argument('--destination',type=Path,default=ROOT/'dist/Reflect Go/Phase 4.7')
     parser.add_argument('--refresh',action='store_true',help='Rebuild an existing development preview; never use on preserved phases')
     args=parser.parse_args()
-    if args.refresh and args.destination.name != 'Phase 4.6':raise SystemExit('Refresh is restricted to Phase 4.6')
+    if args.refresh and args.destination.name != 'Phase 4.7':raise SystemExit('Refresh is restricted to Phase 4.7')
     assemble(args.source.resolve(),args.destination.resolve(),args.refresh)

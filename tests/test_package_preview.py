@@ -12,6 +12,6 @@ class PackageTests(unittest.TestCase):
    output=Path(tmp)/'software.zip';module.package(root,output)
    with zipfile.ZipFile(output)as z:
     names=z.namelist();self.assertFalse(any('/state/'in n or '/claude/'in n or n.endswith('.gguf')for n in names))
-    installed=json.loads(z.read('Reflect Go/Phase 4.6/harnesses/installed.json'));self.assertNotIn('claude/test',installed)
-    manifest=json.loads(z.read('Reflect Go/Phase 4.6/manifest.json'));self.assertNotIn('state/provider-key',manifest)
+    installed=json.loads(z.read('Reflect Go/Phase 4.7/harnesses/installed.json'));self.assertNotIn('claude/test',installed)
+    manifest=json.loads(z.read('Reflect Go/Phase 4.7/manifest.json'));self.assertNotIn('state/provider-key',manifest)
 if __name__=='__main__':unittest.main()

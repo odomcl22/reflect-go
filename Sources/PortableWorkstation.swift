@@ -3,7 +3,7 @@ import WebKit
 
 // Native Mac window for the same authenticated workstation used on Windows and
 // Linux. Keep one implementation of model, client, download, and chat behavior.
-@MainActor final class PortableDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, WKUIDelegate, NSWindowDelegate {
+@MainActor final class PortableDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, WKUIDelegate, WKScriptMessageHandler, NSWindowDelegate {
     private var window: NSWindow!
     private var web: WKWebView!
     private var process: Process?
@@ -12,6 +12,7 @@ import WebKit
     private var base: URL?
     private var quitting = false
     private var started = Date()
+    private var choosingProject = false
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         let root = Bundle.main.bundleURL.deletingLastPathComponent()
@@ -22,9 +23,15 @@ import WebKit
         #endif
         let config = WKWebViewConfiguration()
         config.websiteDataStore = .nonPersistent()
+        config.userContentController.add(self, name: "chooseProject")
         web = WKWebView(frame: .zero, configuration: config)
         web.navigationDelegate = self
         web.uiDelegate = self
+        web.loadHTMLString("""
+        <!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><style>
+        :root {color-scheme: light dark} body {font: 17px -apple-system, sans-serif; margin: 12%; line-height: 1.6} h1 {font-size: 32px} p {max-width: 640px}
+        </style></head><body><h1>Opening Reflect Go…</h1><p>Preparing your portable workstation.</p><p>If macOS asks for access to Documents or your removable drive, allow it so Reflect Go can read its models and settings. A rebuilt preview may ask again.</p></body></html>
+        """, baseURL: nil)
         window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 1180, height: 880), styleMask: [.titled, .closable, .miniaturizable, .resizable], backing: .buffered, defer: false)
         window.title = "Reflect Go"
         window.minSize = NSSize(width: 720, height: 560)
@@ -84,9 +91,10 @@ import WebKit
                let authenticated = URL(string: address + "/#" + token) {
                 base = url
                 web.load(URLRequest(url: authenticated))
-            } else if Date().timeIntervalSince(started) > 20 {
+            } else if Date().timeIntervalSince(started) > 120 {
                 owner?.fileHandleForWriting.closeFile()
-                fail("Startup timed out. Check that the drive is writable and the complete package is present.")
+                process.terminate()
+                fail("Startup timed out. Check for a macOS request to access Documents or the removable drive, allow it, then reopen Reflect Go. Also check that the drive is writable and the complete package is present.")
             }
         }
     }
@@ -98,6 +106,7 @@ import WebKit
     }
     func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
         guard let url = navigationAction.request.url else { decisionHandler(.cancel); return }
+        if base == nil && url.absoluteString == "about:blank" { decisionHandler(.allow); return }
         if url.host == base?.host && url.port == base?.port && url.scheme == "http" { decisionHandler(.allow) }
         else { decisionHandler(.cancel); if navigationAction.navigationType == .linkActivated && url.scheme == "https" { NSWorkspace.shared.open(url) } }
     }
@@ -109,6 +118,30 @@ import WebKit
     func webView(_ webView: WKWebView, runOpenPanelWith parameters: WKOpenPanelParameters, initiatedByFrame frame: WKFrameInfo, completionHandler: @escaping ([URL]?) -> Void) {
         let panel = NSOpenPanel(); panel.canChooseDirectories = false; panel.allowsMultipleSelection = false
         panel.beginSheetModal(for: window) { result in completionHandler(result == .OK ? panel.urls : nil) }
+    }
+    func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
+        guard message.name == "chooseProject", message.frameInfo.isMainFrame,
+              let base, message.frameInfo.securityOrigin.protocol == "http",
+              message.frameInfo.securityOrigin.host == base.host,
+              message.frameInfo.securityOrigin.port == base.port,
+              !choosingProject else { return }
+        choosingProject = true
+        let panel = NSOpenPanel()
+        panel.title = "Choose a project folder"
+        panel.prompt = "Use this folder"
+        panel.canChooseDirectories = true
+        panel.canChooseFiles = false
+        panel.canCreateDirectories = true
+        panel.allowsMultipleSelection = false
+        panel.beginSheetModal(for: window) { [weak self] result in
+            guard let self else { return }
+            self.choosingProject = false
+            let value: Any = result == .OK ? (panel.url?.path as Any? ?? NSNull()) : NSNull()
+            if let data = try? JSONSerialization.data(withJSONObject: value, options: [.fragmentsAllowed]),
+               let argument = String(data: data, encoding: .utf8) {
+                self.web.evaluateJavaScript("window.reflectGoProjectSelected?.(" + argument + ")", completionHandler: nil)
+            }
+        }
     }
     func windowShouldClose(_ sender: NSWindow) -> Bool { NSApp.terminate(nil); return false }
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {

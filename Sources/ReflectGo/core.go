@@ -16,7 +16,7 @@ import (
 	"strings"
 )
 
-const version = "0.4.6-preview"
+const version = "0.4.7-preview"
 const GiB = uint64(1 << 30)
 
 type Settings struct {
@@ -80,7 +80,7 @@ func rootDirectory() (string, error) {
 		}
 		dir = filepath.Dir(dir)
 	}
-	return "", errors.New("keep the complete Phase 4.5 folder together; runtime-targets.json is missing")
+	return "", errors.New("keep the complete Reflect Go folder together; runtime-targets.json is missing")
 }
 func contained(path, root string) bool {
 	p, err := filepath.EvalSymlinks(path)

@@ -1,6 +1,6 @@
 # Reflect Go — roadmap to 1.0
 
-Updated: 2026-10-10. This remains the acceptance roadmap. Core implementation is now in the 0.4.6 engineering preview; see [implementation and validation](PREVIEW_0_4_6_VALIDATION.md) for completed checks and remaining gates. Do not treat implementation as full physical-device or coding-quality qualification.
+Updated: 2026-10-10. This remains the acceptance roadmap. Core implementation is now in the 0.4.7 engineering preview; see [implementation and validation](PREVIEW_0_4_7_VALIDATION.md) for completed checks and remaining gates. Do not treat implementation as full physical-device or coding-quality qualification.
 
 ## Product direction
 
@@ -32,13 +32,13 @@ Available, loading, and loaded are distinct states. Default to one loaded model 
 - Replace the mandatory “select one model, load it, select a project” gate with engine startup and optional model preloading.
 - Publish stable model identifiers and per-client catalogs for enabled, compatible models. Do not point every selectable name at the same model.
 - Add request routing and controlled on-demand loading behind the local endpoint. Establish a clear busy/queue policy so another client cannot evict a model during generation.
-- Preserve client permissions, profile isolation, and drive-relative paths. Do not overwrite an existing host installation's settings.
+- Preserve client permissions, profile isolation, and drive-relative paths. Keep CLI profiles isolated. Desktop connection adapters must journal only owned fields, preserve unrelated host settings, and restore safely with conflict detection.
 - Show only supported model capabilities: tool use, context limits, and reasoning controls that the adapter/runtime can actually honor. Verify mappings per client and model.
 - Keep “Open client” and “Open with project…” available as separate paths. Start with the three CLIs; qualify desktop adapters afterward.
 
 **Done when:** a user starts Reflect Go on a supported host, opens each qualified portable CLI without first selecting a project, selects between two compatible models inside clients that support that interaction, and receives responses from the requested model. Switching, cancellation, simultaneous requests, missing packs, and drive relocation behave predictably. Client-specific limitations are visible.
 
-**Implementation:** 0.4.6 adds optional projects, a stable gateway, client catalogs, on-demand loading, and active-request exclusion. Physical-device and representative coding qualification remain required.
+**Implementation:** 0.4.6 added the gateway, catalogs and on-demand loading. 0.4.7 makes a client click start the service automatically, remembers optional projects and per-CLI models/defaults, and adds a native Mac folder picker. DeepSeek Harness and OpenCode Web adapters plus an experimental Claude Desktop profile/model gateway extend the integration work. [Compatibility status](HARNESS_COMPATIBILITY.md) separates implemented adapters from desktop targets. Physical-device, real desktop and representative coding qualification remain required.
 
 ### 2. Download and manage models inside the application
 

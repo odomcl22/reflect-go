@@ -124,6 +124,7 @@ func connectClient(root string, args []string) (result error) {
 	task := flags.String("task", "", "")
 	source := flags.String("source", "portable", "")
 	hold := flags.Bool("hold", false, "")
+	profileName := flags.String("launch-profile", "", "")
 	if err := flags.Parse(args[1:]); err != nil {
 		return err
 	}
@@ -153,7 +154,15 @@ func connectClient(root string, args []string) (result error) {
 		return err
 	}
 	stage = "checking client pack and local API"
-	cmd, err := clientCommand(root, name, *source, dir, *task)
+	var profile *ClientLaunchPreference
+	if *profileName != "" {
+		p, err := readLaunchProfile(root, *profileName)
+		if err != nil {
+			return err
+		}
+		profile = &p
+	}
+	cmd, err := clientCommandWithProfile(root, name, *source, dir, *task, profile)
 	if err != nil {
 		return err
 	}
@@ -189,6 +198,9 @@ func recordClientLaunch(root, name, stage string, result error) {
 }
 
 func clientCommand(root, name, source, dir, task string) (*exec.Cmd, error) {
+	return clientCommandWithProfile(root, name, source, dir, task, nil)
+}
+func clientCommandWithProfile(root, name, source, dir, task string, profile *ClientLaunchPreference) (*exec.Cmd, error) {
 	var err error
 	var client string
 	if source == "portable" {
@@ -226,6 +238,19 @@ func clientCommand(root, name, source, dir, task string) (*exec.Cmd, error) {
 	models, err := clientModels(response.Body, c)
 	if err != nil {
 		return nil, err
+	}
+	if c.Gateway {
+		if profile == nil {
+			p, err := savedClientPreference(root, name)
+			if err != nil {
+				return nil, err
+			}
+			profile = &p
+		}
+		models, c.ID, err = selectedClientModels(models, c.ID, *profile)
+		if err != nil {
+			return nil, err
+		}
 	}
 	env, err := clientEnvironment(root, name)
 	if err != nil {
