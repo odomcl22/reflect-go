@@ -1,12 +1,24 @@
 # Reflect Go
 
-[![Reflect Go — Your weights. Your way. (Watch the 12-second intro)](docs/media/reflect-go-intro-poster.jpg)](docs/media/reflect-go-intro.mp4)
+**Your weights. Your way.** Reflect Go carries local AI models and the software
+to run them on a drive. Open it on a compatible computer, choose a supported
+client, and work with your local model.
 
-▶ [Watch the intro video](docs/media/reflect-go-intro.mp4) (12 seconds, with sound)
+[![Watch the Reflect Go interface walkthrough](docs/media/reflect-go-walkthrough.jpg)](docs/media/reflect-go-walkthrough.mp4)
 
-**Reflect on the Go** — portable local inference, carried on a drive.
+▶ [Watch the 24-second walkthrough](docs/media/reflect-go-walkthrough.mp4)
+— real interface captures, with captions and no sound. This shows the launch
+workflow; it is not an end-to-end inference demonstration.
+[Watch the original brand intro](docs/media/reflect-go-intro.mp4) (12 seconds, with sound).
 
-The drive stores model weights, launcher, inference runtime, libraries, and settings. The attached computer supplies CPU, GPU, and RAM. Weights are loaded into memory while running; the model does not need to be installed on the computer first. A model's claim to be “in the cloud” is generated text, not information about the running process.
+**Early preview · Source available here · Downloadable packages are not published yet.**
+
+The drive stores model weights, launcher, inference runtime, libraries, and
+settings. The attached computer supplies CPU, GPU, and RAM. Once the drive is
+prepared, local inference needs no cloud AI subscription or separate engine
+installation on that computer. Clients can access the project folders you give
+them permission to use. See [app compatibility](docs/HARNESS_COMPATIBILITY.md)
+for tested integrations and platform limitations.
 
 **Current development preview: 0.4.7. Open Reflect Go → open your app → work.**
 Reflect Go starts the local service automatically and supplies remembered models.
