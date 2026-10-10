@@ -26,12 +26,13 @@ func parseOptions(args []string) (Options, error) {
 		args = args[1:]
 	}
 	switch o.Command {
-	case "ui", "chat", "run", "serve", "inventory", "models", "doctor", "verify", "qualify":
+	case "ui", "chat", "run", "serve", "gateway", "inventory", "models", "doctor", "verify", "qualify":
 	default:
 		return o, fmt.Errorf("unknown command: %s", o.Command)
 	}
 	f := flag.NewFlagSet("Reflect Go", flag.ContinueOnError)
 	f.SetOutput(io.Discard)
+	f.StringVar(&o.EnabledIDs, "enabled-ids", "", "")
 	f.StringVar(&o.Model, "model", "", "")
 	f.StringVar(&o.Prompt, "prompt", "", "")
 	f.StringVar(&o.Backend, "backend", "auto", "")
@@ -41,6 +42,7 @@ func parseOptions(args []string) (Options, error) {
 	f.IntVar(&o.Port, "port", 8766, "")
 	f.Float64Var(&o.Temperature, "temperature", -1, "")
 	f.BoolVar(&o.CPU, "cpu", false, "")
+	f.BoolVar(&o.Internal, "internal", false, "")
 	f.BoolVar(&o.Verbose, "verbose", false, "")
 	if err := f.Parse(args); err != nil {
 		return o, err
@@ -81,7 +83,7 @@ func parseOptions(args []string) (Options, error) {
 }
 func emit(v any) error { e := json.NewEncoder(os.Stdout); e.SetIndent("", "  "); return e.Encode(v) }
 func main() {
-	if len(os.Args) > 1 && (os.Args[1] == "serve" || os.Args[1] == "run" || os.Args[1] == "chat" || os.Args[1] == "_supervise" || os.Args[1] == "connect") {
+	if len(os.Args) > 1 && (os.Args[1] == "gateway" || os.Args[1] == "serve" || os.Args[1] == "run" || os.Args[1] == "chat" || os.Args[1] == "_supervise" || os.Args[1] == "connect") {
 		if err := setupProcessTree(); err != nil {
 			showLaunchError(err)
 			fmt.Fprintln(os.Stderr, "Reflect Go:", err)
@@ -148,6 +150,9 @@ func mainRun(args []string) error {
 	}
 	if o.Threads > inv.Hardware.CPUThreads {
 		return errors.New("threads exceeds this host's CPU thread count")
+	}
+	if o.Command == "gateway" {
+		return serveGateway(root, s, o, inv)
 	}
 	return launch(root, s, o, inv)
 }
@@ -224,7 +229,15 @@ func launch(root string, s Settings, o Options, inv Inventory) error {
 	name := "llama-completion"
 	var lock *os.File
 	if o.Command == "serve" {
-		lock, err = lockProvider(root)
+		lockName := "provider.lock"
+		if o.Internal {
+			lockName = "runtime.lock"
+		}
+		if o.Internal {
+			lock, err = lockNamed(root, lockName)
+		} else {
+			lock, err = lockProvider(root)
+		}
 		if err != nil {
 			return err
 		}
@@ -237,14 +250,22 @@ func launch(root string, s Settings, o Options, inv Inventory) error {
 			return err
 		}
 		base := fmt.Sprintf("http://127.0.0.1:%d", o.Port)
-		connection, err := statePath(root, "provider.json")
+		connectionName := "provider.json"
+		if o.Internal {
+			connectionName = "runtime-provider.json"
+		}
+		connection, err := statePath(root, connectionName)
 		if err != nil {
 			return err
 		}
 		if err = writeJSON(connection, map[string]any{"base_url": base, "model": "reflect-go-local", "model_file": m.Name, "context": context, "backend": backend.Kind, "device": backend.Device}); err != nil {
 			return err
 		}
-		args = append(args, "--alias", "reflect-go-local", "--host", "127.0.0.1", "--port", strconv.Itoa(o.Port), "--api-key-file", keyPath, "--reasoning", "off", "--no-webui", "--no-ui-mcp-proxy", "--no-agent", "--metrics", "--no-slots", "--cors-origins", base, "--no-cors-credentials", "--cache-ram", "0", "--ctx-checkpoints", "0", "--verbosity", "3")
+		alias := "reflect-go-local"
+		if o.Internal {
+			alias = modelID(m.Name)
+		}
+		args = append(args, "--alias", alias, "--host", "127.0.0.1", "--port", strconv.Itoa(o.Port), "--api-key-file", keyPath, "--reasoning", "off", "--no-webui", "--no-ui-mcp-proxy", "--no-agent", "--metrics", "--no-slots", "--cors-origins", base, "--no-cors-credentials", "--cache-ram", "0", "--ctx-checkpoints", "0", "--verbosity", "3")
 		fmt.Fprintln(os.Stderr, "Wait for listening before connecting clients. Ctrl-C stops the provider.")
 		name = "llama-server"
 	} else {

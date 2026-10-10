@@ -8,13 +8,31 @@
 
 The drive stores model weights, launcher, inference runtime, libraries, and settings. The attached computer supplies CPU, GPU, and RAM. Weights are loaded into memory while running; the model does not need to be installed on the computer first. A model's claim to be “in the cloud” is generated text, not information about the running process.
 
-**Current release: Phase 4.5 engineering preview.** The personal drive build includes
-portable Codex, Claude Code and OpenCode CLI packs alongside the Mac, Windows and
-Linux inference engine. On Windows, open **Phase 4.5/START Reflect Go.exe**; on Mac,
-open **Phase 4.5/Reflect Go.app**. See [startup and requirements](docs/PHASE_4_5_README.md)
-and [validation](docs/PHASE_4_5_VALIDATION.md). Apple Silicon is the execution-tested
-host. Intel Mac, Windows, Linux and conditional Chromebook qualification remain
-pending. Earlier working phases and the shared model library are preserved.
+**Current development preview: 0.4.6.** Start the engine, expose your enabled
+models, and open a portable CLI—with or without selecting a project first. The
+preview adds model catalogs and on-demand loading, in-app downloads/imports,
+recommendations, streaming chat, and Dark/Light/System appearance.
+
+On the assembled personal drive, open **Phase 4.6/Reflect Go.app** on Mac,
+**Phase 4.6/START Reflect Go.exe** on Windows, or `sh "Reflect Go.sh"` on Linux.
+See [startup and new features](docs/PREVIEW_0_4_6.md) and
+[validation and remaining limits](docs/PREVIEW_0_4_6_VALIDATION.md).
+The current execution-tested host is an Apple M1 Mac. Other platform builds
+compile but require physical qualification. Phase 4.5 and earlier previews are
+preserved.
+
+The planned downloads have the same application/client functionality:
+
+| Edition | Model weights |
+| --- | --- |
+| Reflect Go | None; download or import through Model library. |
+| Reflect Go Starter Pack | One small, pinned chat/setup demonstration model. |
+
+Portable clients are core functionality, not a Plus tier. The personal package
+includes Codex, Claude Code, and OpenCode. Shareable packaging excludes proprietary
+Claude binaries pending a permitted distribution method. **Ready-to-download
+0.4.6 release assets have not been published.** This repository provides source
+and assembly scripts; the table describes packaging choices, not download links.
 
 ## Source repository
 
@@ -30,6 +48,13 @@ separate website checkout and its draft history are also excluded. Preserve
 upstream license notices when assembling a distribution.
 
 ## Agreed next milestones
+
+See the [roadmap to 1.0](docs/ROADMAP.md) for the updated client-first workflow,
+model catalogs and on-demand loading, in-app model downloads, automatic setting
+recommendations, understandable failures, and simple chat with appearance controls.
+It also defines the planned **Reflect Go** and **Reflect Go Starter Pack** downloads.
+The core feature implementation is in 0.4.6; acceptance gates and deferred work
+remain in the roadmap. Phase 4.5 instructions below describe that preserved preview.
 
 The core path is **3.1 workstation hardening → 4.0 supported Windows/Mac/Linux runtime → 4.5 CLI compatibility and portable harness packs → Reflect Go 1.0 qualification**. The initial harness targets are **Codex CLI, OpenCode CLI, and Claude Code CLI**, all using the shared local model provider. Phase 4.5 carries pinned native harness software with isolated profiles on the drive; a host installation is an explicit command-line alternative.
 
@@ -49,14 +74,16 @@ Reflect Go/
   Phase 3/      Original workstation release
   Phase 3.1/    Hardened Mac workstation
   Phase 4/      Adaptive Windows, Mac and Linux runtime; native Mac/browser UI
-  Phase 4.5/    Portable CLI clients; one Windows executable entry point
+  Phase 4.5/    Preserved portable CLI preview
+  Phase 4.6/    Client-first gateway, downloads, recommendations, chat and themes
+  Workspace/    Default client workspace; separate from models and software
 ```
 
 Phase 4 adds software for six operating-system/architecture combinations and multiple backends; it is larger than the earlier Mac-only phases. The two shared models still occupy about 3.4 GiB total, with no new weight copies. Archive phase software without archiving its models. Removing a model from `Models/` makes it unavailable to every phase using it; restore that file to use it again. The old `dist/PortableAI` build and assembly download cache are separate historical/development artifacts, not part of this collection.
 
 The project’s top-level `releases/` is the only backup archive location. Phase archives include source and compiled software, never model weights or runtime state. No backup Releases folder is needed in `dist/Reflect Go` or on the USB. Working Phase 1 now has shared model paths, Reflect Go branding, and a system prompt describing local execution. Its original source and binaries remain recoverable.
 
-## Phase 4.5: start here
+## Phase 4.5: preserved portable CLI preview
 
 Open **START Reflect Go.exe** on Windows or **Reflect Go.app** on Mac. Linux uses
 `sh "Reflect Go.sh"`. Start the engine with the 4B model and 16,384 context when

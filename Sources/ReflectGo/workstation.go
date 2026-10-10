@@ -30,12 +30,14 @@ import (
 var uiFiles embed.FS
 
 type RunSettings struct {
-	Model       string  `json:"model"`
-	Context     int     `json:"context"`
-	Backend     string  `json:"backend"`
-	Threads     int     `json:"threads"`
-	Temperature float64 `json:"temperature"`
-	Port        int     `json:"port"`
+	Model       string   `json:"model"`
+	Enabled     []string `json:"enabled,omitempty"`
+	Host        string   `json:"host,omitempty"`
+	Context     int      `json:"context"`
+	Backend     string   `json:"backend"`
+	Threads     int      `json:"threads"`
+	Temperature float64  `json:"temperature"`
+	Port        int      `json:"port"`
 }
 
 func defaultRunSettings() RunSettings {
@@ -144,14 +146,13 @@ func (m *EngineManager) start(s RunSettings) error {
 	if err != nil {
 		return fail(err)
 	}
-	selected, err := chooseModel(inv, o)
-	if err != nil {
-		return fail(err)
+	if !inv.Hardware.Backend.Available {
+		return fail(errors.New(inv.Hardware.Backend.Reason))
 	}
 	if o.Threads > inv.Hardware.CPUThreads {
 		return fail(errors.New("thread count exceeds this computer's available CPUs"))
 	}
-	s.Model = selected.Name
+	// The selected model is a preferred default; loading is deferred to requests.
 	lock, err = lockNamed(m.root, "workstation.lock")
 	if err != nil {
 		return fail(errors.New("this phase already has an engine open in another window"))
@@ -178,7 +179,10 @@ func (m *EngineManager) start(s RunSettings) error {
 	}
 	defer log.Close()
 	self, _ := os.Executable()
-	args := []string{"_supervise", "serve", "--model", s.Model, "--context", strconv.Itoa(s.Context), "--backend", s.Backend, "--temperature", strconv.FormatFloat(s.Temperature, 'f', -1, 64), "--port", strconv.Itoa(s.Port)}
+	args := []string{"_supervise", "gateway", "--model", s.Model, "--context", strconv.Itoa(s.Context), "--backend", s.Backend, "--temperature", strconv.FormatFloat(s.Temperature, 'f', -1, 64), "--port", strconv.Itoa(s.Port)}
+	if len(s.Enabled) > 0 {
+		args = append(args, "--enabled-ids", strings.Join(s.Enabled, ","))
+	}
 	if s.Threads > 0 {
 		args = append(args, "--threads", strconv.Itoa(s.Threads))
 	}
@@ -212,7 +216,7 @@ func (m *EngineManager) start(s RunSettings) error {
 	m.announced = false
 	m.enginePID = 0
 	m.failures = 0
-	m.status = EngineStatus{Active: true, Status: "Loading model", Settings: s}
+	m.status = EngineStatus{Active: true, Status: "Starting model service", Settings: s}
 	m.mu.Unlock()
 	if prefs, e := statePath(m.root, "workstation-web.json"); e == nil {
 		writeJSON(prefs, s)
@@ -431,7 +435,7 @@ func (m *EngineManager) quickTest() (string, error) {
 	}
 	id := m.session
 	m.status.Testing = true
-	ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 11*time.Minute)
 	m.cancelTest = cancel
 	m.mu.Unlock()
 	defer func() {
@@ -451,7 +455,7 @@ func (m *EngineManager) quickTest() (string, error) {
 	request.Header.Set("Authorization", "Bearer "+key)
 	request.Header.Set("Content-Type", "application/json")
 	client := *localHTTP
-	client.Timeout = 90 * time.Second
+	client.Timeout = 11 * time.Minute
 	response, err := client.Do(request)
 	if err != nil {
 		return "", err
@@ -490,9 +494,21 @@ func serveUI(root string) error {
 	}
 	token := hex.EncodeToString(raw)
 	manager := newManager(root)
+	downloads := newDownloads(root)
+	defer downloads.close()
 	defer manager.waitStopped()
 	mux := http.NewServeMux()
+	productRoutes(mux, root, manager, downloads)
 	quit := make(chan struct{}, 1)
+	if os.Getenv("REFLECT_GO_UI_OWNED") == "1" {
+		go func() {
+			io.Copy(io.Discard, os.Stdin)
+			select {
+			case quit <- struct{}{}:
+			default:
+			}
+		}()
+	}
 	send := func(w http.ResponseWriter, v any) {
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(v)
@@ -525,7 +541,15 @@ func serveUI(root string) error {
 			_, e := portableClient(root, name, false)
 			clients[name] = e == nil
 		}
-		send(w, map[string]any{"engine": manager.snapshot(), "clients": clients, "platform": platformID(), "version": version})
+		status := manager.snapshot()
+		var gateway GatewayState
+		if status.Ready {
+			gateway, _ = gatewayStatus(root)
+		}
+		if gateway.PID > 0 {
+			status.ResidentBytes = processMemory(gateway.PID)
+		}
+		send(w, map[string]any{"engine": status, "gateway": gateway, "clients": clients, "clientReports": productStatus(root), "download": downloads.snapshot(), "platform": platformID(), "version": version})
 	})
 	mux.HandleFunc("/api/inventory", func(w http.ResponseWriter, r *http.Request) {
 		s, e := loadSettings(root)
@@ -594,8 +618,10 @@ func serveUI(root string) error {
 			http.Error(w, e.Error(), 400)
 			return
 		}
-		if p.Project == "" {
-			http.Error(w, "Enter a project folder", 400)
+		var projectErr error
+		p.Project, projectErr = resolveProject(root, p.Project)
+		if projectErr != nil {
+			http.Error(w, projectErr.Error(), 400)
 			return
 		}
 		if e := launchTerminal(root, p.Client, p.Project, p.Task); e != nil {

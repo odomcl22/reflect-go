@@ -8,7 +8,7 @@ import (
 
 func launchTerminal(root, client, project, task string) error {
 	self, _ := os.Executable()
-	args := []string{self, "connect", client, "--project", project}
+	args := []string{self, "connect", client, "--project", project, "--hold"}
 	if task != "" {
 		args = append(args, "--task", task)
 	}

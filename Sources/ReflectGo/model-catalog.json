@@ -1,0 +1,67 @@
+[
+  {
+    "id": "bonsai-8b-q1",
+    "name": "Bonsai 8B",
+    "filename": "Bonsai-8B-Q1_0.gguf",
+    "url": "https://huggingface.co/prism-ml/Bonsai-8B-gguf/resolve/48516770dd04643643e9f9019a2a349cf26c5dbd/Bonsai-8B-Q1_0.gguf",
+    "sha256": "284a335aa3fb2ced3b1b01fcb40b08aa783e3b70832767f0dd2e3fdfa134bd54",
+    "size": 1158654496,
+    "license": "apache-2.0",
+    "source": "https://huggingface.co/prism-ml/Bonsai-8B-gguf",
+    "quantization": "Q1_0",
+    "purpose": "coding-trial",
+    "note": "Chat tested; coding reliability needs qualification."
+  },
+  {
+    "id": "qwen35-4b-iq4-xs",
+    "name": "Qwen3.5 4B",
+    "filename": "Qwen3.5-4B-IQ4_XS.gguf",
+    "url": "https://huggingface.co/unsloth/Qwen3.5-4B-GGUF/resolve/e87f176479d0855a907a41277aca2f8ee7a09523/Qwen3.5-4B-IQ4_XS.gguf",
+    "sha256": "658a9e7e406deb06d0179755e3c14f6a82915a4be4962a2f92a64d948d2e572f",
+    "size": 2477053088,
+    "license": "apache-2.0",
+    "source": "https://huggingface.co/unsloth/Qwen3.5-4B-GGUF",
+    "quantization": "IQ4_XS",
+    "purpose": "coding-trial",
+    "note": "Chat tested; coding reliability needs qualification."
+  },
+  {
+    "id": "qwen35-9b-iq4-xs",
+    "name": "Qwen3.5 9B",
+    "filename": "Qwen3.5-9B-IQ4_XS.gguf",
+    "url": "https://huggingface.co/unsloth/Qwen3.5-9B-GGUF/resolve/3885219b6810b007914f3a7950a8d1b469d598a5/Qwen3.5-9B-IQ4_XS.gguf",
+    "sha256": "7e918aeca06c52bcb528ea6b04b4ec957e75ee8c0a73138854c0dfcf371ea429",
+    "size": 5168653536,
+    "license": "apache-2.0",
+    "source": "https://huggingface.co/unsloth/Qwen3.5-9B-GGUF",
+    "quantization": "IQ4_XS",
+    "purpose": "coding-trial",
+    "note": "Chat tested; coding reliability needs qualification."
+  },
+  {
+    "id": "starter",
+    "name": "Qwen2.5 1.5B Instruct",
+    "filename": "qwen2.5-1.5b-instruct-q4_k_m.gguf",
+    "url": "https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF/resolve/91cad51170dc346986eccefdc2dd33a9da36ead9/qwen2.5-1.5b-instruct-q4_k_m.gguf",
+    "sha256": "6a1a2eb6d15622bf3c96857206351ba97e1af16c30d7a74ee38970e434e9407e",
+    "size": 1117320736,
+    "license": "Apache-2.0",
+    "source": "https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF",
+    "quantization": "Q4_K_M",
+    "purpose": "chat",
+    "note": "Small setup/chat demonstration."
+  },
+  {
+    "id": "coding-baseline",
+    "name": "Qwen3 4B Instruct",
+    "filename": "Qwen3-4B-Instruct-2507-Q4_K_M.gguf",
+    "url": "https://huggingface.co/lmstudio-community/Qwen3-4B-Instruct-2507-GGUF/resolve/4edb920b6f14e3b9284d4502a6485103d72cde05/Qwen3-4B-Instruct-2507-Q4_K_M.gguf",
+    "sha256": "8cdb57cbb880d313736a9bc4e3d3d2485f145b5e19cf33783746e753e82641fc",
+    "size": 2497280448,
+    "license": "Apache-2.0",
+    "source": "https://huggingface.co/lmstudio-community/Qwen3-4B-Instruct-2507-GGUF",
+    "quantization": "Q4_K_M",
+    "purpose": "coding-trial",
+    "note": "Previously exercised with coding clients; review edits."
+  }
+]

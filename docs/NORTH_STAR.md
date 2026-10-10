@@ -1,5 +1,21 @@
 # Reflect Go — Project North Star
 
+## Current roadmap — 2026-10-09
+
+The [roadmap to 1.0](ROADMAP.md) is the current forward plan. It puts preconfigured
+portable CLI clients in the core product, makes project selection optional,
+and introduces client-visible model catalogs with on-demand loading. It also
+covers in-app model downloads, hardware-aware recommendations, clear status and
+recovery, and simple chat with Dark/Light/System appearance.
+
+The planned downloads are **Reflect Go** (software and supported clients, no
+weights) and **Reflect Go Starter Pack** (the same functionality plus one small
+demonstration model). This supersedes the optional Plus packaging proposal below.
+Public client distribution remains subject to a permitted acquisition method.
+Phase 4.5 remains preserved. The 0.4.6 development preview implements the core
+workflow; [its validation](PREVIEW_0_4_6_VALIDATION.md) distinguishes executed
+checks from outstanding roadmap acceptance gates. Earlier scope and phase descriptions are retained below.
+
 ## Agreed product scope — 2026-10-04
 
 **Reflect Go** (long name **Reflect on the Go**) is the portable inference engine. Its core product carries model weights, inference runtimes, and configuration on an external drive, adapts to supported host hardware, and connects supported harnesses. The host supplies the operating system, compute, memory, compatible drivers, and permission to execute the application.

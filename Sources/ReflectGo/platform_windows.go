@@ -36,7 +36,7 @@ func detectHardware() (Hardware, error) {
 	if ok == 0 {
 		return Hardware{}, fmt.Errorf("cannot read physical memory: %v", err)
 	}
-	return Hardware{OS: "Windows", CPU: os.Getenv("PROCESSOR_IDENTIFIER"), Architecture: runtime.GOARCH, PhysicalMemoryBytes: mem.TotalPhys, CPUThreads: runtime.NumCPU(), ScreeningBudgetBytes: mem.TotalPhys / 2}, nil
+	return Hardware{OS: "Windows", CPU: os.Getenv("PROCESSOR_IDENTIFIER"), Architecture: runtime.GOARCH, PhysicalMemoryBytes: mem.TotalPhys, AvailableMemoryBytes: mem.AvailPhys, CPUThreads: runtime.NumCPU(), ScreeningBudgetBytes: mem.TotalPhys / 2}, nil
 }
 
 // Every child inherits this job. Windows closes our non-inheritable job handle

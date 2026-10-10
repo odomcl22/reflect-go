@@ -16,7 +16,7 @@ import (
 	"strings"
 )
 
-const version = "0.4.5"
+const version = "0.4.6-preview"
 const GiB = uint64(1 << 30)
 
 type Settings struct {
@@ -29,12 +29,15 @@ type Settings struct {
 }
 type Options struct {
 	Command, Model, Prompt, Backend   string
+	EnabledIDs                        string
 	Context, MaxTokens, Threads, Port int
 	Temperature                       float64
-	CPU, Verbose                      bool
+	CPU, Verbose, Internal            bool
 }
 type Model struct {
 	Name           string `json:"name"`
+	ID             string `json:"id"`
+	Purpose        string `json:"purpose"`
 	Bytes          uint64 `json:"bytes"`
 	EstimatedBytes uint64 `json:"estimatedBytes"`
 	Eligible       bool   `json:"eligible"`
@@ -46,6 +49,7 @@ type Hardware struct {
 	CPU                  string  `json:"cpu"`
 	Architecture         string  `json:"architecture"`
 	PhysicalMemoryBytes  uint64  `json:"physicalMemoryBytes"`
+	AvailableMemoryBytes uint64  `json:"availableMemoryBytes,omitempty"`
 	CPUThreads           int     `json:"cpuThreads"`
 	MetalDevice          *string `json:"metalDevice,omitempty"`
 	ScreeningBudgetBytes uint64  `json:"screeningBudgetBytes"`
@@ -231,6 +235,9 @@ func inventory(root string, s Settings, o Options) (Inventory, error) {
 	if err != nil {
 		return Inventory{}, err
 	}
+	if err = os.MkdirAll(dir, 0755); err != nil {
+		return Inventory{}, err
+	}
 	entries, err := os.ReadDir(dir)
 	if err != nil {
 		return Inventory{}, fmt.Errorf("cannot read Models folder: %w", err)
@@ -254,7 +261,7 @@ func inventory(root string, s Settings, o Options) (Inventory, error) {
 	return value, nil
 }
 func inspectModel(path, dir string, context int, budget uint64) Model {
-	m := Model{Name: filepath.Base(path), Path: path}
+	m := Model{Name: filepath.Base(path), Path: path, ID: modelID(filepath.Base(path)), Purpose: modelPurpose(filepath.Base(path))}
 	var kv = uint64(524288)
 	err := func() error {
 		if !contained(path, dir) {

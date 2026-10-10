@@ -13,9 +13,13 @@ func detectHardware() (Hardware, error) {
 	if err != nil {
 		return Hardware{}, err
 	}
-	var ram uint64
+	var ram, available uint64
 	for _, line := range strings.Split(string(data), "\n") {
 		parts := strings.Fields(line)
+		if len(parts) > 1 && parts[0] == "MemAvailable:" {
+			available, _ = strconv.ParseUint(parts[1], 10, 64)
+			available *= 1024
+		}
 		if len(parts) > 1 && parts[0] == "MemTotal:" {
 			ram, _ = strconv.ParseUint(parts[1], 10, 64)
 			ram *= 1024
@@ -50,7 +54,7 @@ func detectHardware() (Hardware, error) {
 			}
 		}
 	}
-	return Hardware{OS: osName, CPU: cpu, Architecture: runtime.GOARCH, PhysicalMemoryBytes: ram, CPUThreads: runtime.NumCPU(), ScreeningBudgetBytes: ram / 2}, nil
+	return Hardware{OS: osName, CPU: cpu, Architecture: runtime.GOARCH, PhysicalMemoryBytes: ram, AvailableMemoryBytes: min(available, ram), CPUThreads: runtime.NumCPU(), ScreeningBudgetBytes: ram / 2}, nil
 }
 func processMemory(pid int) uint64 {
 	b, err := os.ReadFile(fmt.Sprintf("/proc/%d/status", pid))

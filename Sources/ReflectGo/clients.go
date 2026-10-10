@@ -22,6 +22,8 @@ var localHTTP = &http.Client{Timeout: 5 * time.Second, Transport: &http.Transpor
 
 type Connection struct {
 	Base    string `json:"base_url"`
+	ID      string `json:"model"`
+	Gateway bool   `json:"gateway"`
 	Context int    `json:"context"`
 	Model   string `json:"model_file"`
 	Backend string `json:"backend"`
@@ -146,24 +148,9 @@ func connectClient(root string, args []string) (result error) {
 		return errors.New("unexpected connector argument")
 	}
 	stage = "checking project folder"
-	if *project == "" {
-		return errors.New("choose a project folder outside the Reflect Go collection")
-	}
-	dir, err := filepath.Abs(*project)
+	dir, err := resolveProject(root, *project)
 	if err != nil {
 		return err
-	}
-	dir, err = filepath.EvalSymlinks(dir)
-	if err != nil {
-		return err
-	}
-	info, err := os.Stat(dir)
-	if err != nil || !info.IsDir() {
-		return errors.New("project folder does not exist")
-	}
-	collection, _ := filepath.EvalSymlinks(filepath.Dir(root))
-	if dir == collection || contained(dir, collection) {
-		return errors.New("choose a project outside the Reflect Go collection")
 	}
 	stage = "checking client pack and local API"
 	cmd, err := clientCommand(root, name, *source, dir, *task)
@@ -219,6 +206,9 @@ func clientCommand(root, name, source, dir, task string) (*exec.Cmd, error) {
 	if err != nil {
 		return nil, err
 	}
+	if name == "opencode" && c.Context < 16384 {
+		return nil, errors.New("OpenCode needs at least 16,384 context tokens in this preview; its prompt and compaction overhead can loop at 8,192. Stop the engine and apply Coding settings, or use Chat with a smaller context")
+	}
 	if c.Context < 8192 {
 		return nil, errors.New("coding clients need at least 8,192 context tokens; stop the engine and select 16,384 when memory allows")
 	}
@@ -226,12 +216,16 @@ func clientCommand(root, name, source, dir, task string) (*exec.Cmd, error) {
 	if err != nil {
 		return nil, err
 	}
-	response.Body.Close()
+	defer response.Body.Close()
 	if response.StatusCode != 200 {
 		if response.StatusCode == http.StatusUnauthorized || response.StatusCode == http.StatusForbidden {
 			return nil, fmt.Errorf("local provider rejected the connection key (HTTP %d); stop and restart the engine in this phase, then reopen the client", response.StatusCode)
 		}
 		return nil, fmt.Errorf("local provider is not ready (HTTP %d)", response.StatusCode)
+	}
+	models, err := clientModels(response.Body, c)
+	if err != nil {
+		return nil, err
 	}
 	env, err := clientEnvironment(root, name)
 	if err != nil {
@@ -276,6 +270,9 @@ func clientCommand(root, name, source, dir, task string) (*exec.Cmd, error) {
 			options = []string{"run", "--model", "reflect_go/reflect-go-local", task}
 		}
 	}
+	if err := configureCatalog(root, name, c, models, &options, &env); err != nil {
+		return nil, err
+	}
 	fmt.Printf("%s → Reflect Go (%s) · %s\n", name, c.Base, dir)
 	fmt.Println("Client software: " + source + ". Settings and sessions stay on this drive. Use one client at a time.")
 	if name == "claude" {
@@ -288,4 +285,36 @@ func clientCommand(root, name, source, dir, task string) (*exec.Cmd, error) {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	return cmd, nil
+}
+
+// The default workspace is separate from runtime/model files and still travels.
+func resolveProject(root, project string) (string, error) {
+	if project == "" {
+		workspace, err := safePath(filepath.Dir(root), "Workspace")
+		if err != nil {
+			return "", err
+		}
+		if err = os.MkdirAll(workspace, 0700); err != nil {
+			return "", err
+		}
+		return workspace, nil
+	}
+	dir, err := filepath.Abs(project)
+	if err != nil {
+		return "", err
+	}
+	dir, err = filepath.EvalSymlinks(dir)
+	if err != nil {
+		return "", err
+	}
+	info, err := os.Stat(dir)
+	if err != nil || !info.IsDir() {
+		return "", errors.New("project folder does not exist")
+	}
+	collection := filepath.Dir(root)
+	workspace := filepath.Join(collection, "Workspace")
+	if (dir == collection || contained(dir, collection)) && dir != workspace && !contained(dir, workspace) {
+		return "", errors.New("choose a project outside the runtime/model collection, or use its Workspace folder")
+	}
+	return dir, nil
 }
