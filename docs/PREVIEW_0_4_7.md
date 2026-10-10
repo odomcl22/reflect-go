@@ -8,7 +8,7 @@ Open Reflect Go, then open your app. Reflect Go starts its local service and sup
 - Windows: open **START Reflect Go.exe**.
 - Linux: run `sh "Reflect Go.sh"` from executable storage with a supported runtime and terminal.
 
-If macOS asks for Documents or removable-drive access, allow it. Rebuilt ad hoc signed previews may ask again; the startup window explains this while waiting.
+If macOS asks for Documents or removable-drive access, allow it once. Phase 4.7 now has a separate macOS app identity from preserved older phases, fixing their competing-permission loop. Rebuilt ad hoc signed previews may still ask again after an update. If an older preview is repeatedly prompting, quit that older copy before reopening Phase 4.7. The native window now waits for a private startup message instead of repeatedly reading protected files.
 
 Keep the phase folder beside the shared **Models** and **Workspace** folders. Earlier phases remain preserved; do not run them on the same provider port simultaneously.
 

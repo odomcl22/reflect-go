@@ -30,3 +30,13 @@ The existing 0.4.6 real local inference and three-CLI greeting checks are record
 Launching the rebuilt app from Documents waited for macOS Files and Folders approval. The TCC log showed that the new ad hoc code hash did not match the previous permission record, then requested Documents access. The backend waited before Go started. The temporary test copy opened successfully. The native window now explains the permission request while starting, allows up to two minutes, and gives recovery guidance on timeout. No privacy settings were reset. Stable release signing and real removable-drive/Finder launch qualification remain required; a successful temporary-folder test does not close that gate.
 
 Abrupt process death and forced drive removal need further lifecycle testing for the additional graphical harnesses. Normal owned-process shutdown was tested. Public assets remain unpublished.
+
+## Documents permission loop correction
+
+The follow-up user report reproduced a stronger problem than a single repeated-build prompt: preserved Phase 4.6 and Phase 4.7 were running simultaneously with the same bundle identifier and different ad hoc designated requirements. The macOS log showed 42 alternating signature mismatches and permission prompts in the inspected three-minute interval. Each Allow replaced the record needed by the other preview.
+
+The Phase 4.7 builder now sets a version-specific bundle/signing identifier, retains ordinary ad hoc signing, and refuses to overwrite a running target app. It does not modify macOS privacy settings, weaken signing requirements, or rewrite older previews. Native startup now receives its authenticated session over a private pipe and receives appearance updates from the trusted UI; the native window no longer polls Documents for session/appearance files. Closing before startup terminates only that still-starting helper.
+
+Validation: seven Python build-identity/packaging tests passed; full Go race suite passed; startup-handshake tests cover exact environment gating, no token in ordinary launcher output, write failure and duplicate owned launch refusal. Browser/native theme bridge checks, JavaScript syntax, Swift typecheck and all six rebuilt platform binaries passed. The rebuilt app's bundle and signing identifiers were checked to match and differ from Phase 4.6. Live macOS permission acceptance is checked separately from these automated tests.
+
+The corrected identity’s observed live launch produced one Documents permission prompt and zero code-requirement mismatches. This confirms that the alternating identity conflict stopped in that observation; user acceptance and the subsequent native Apps screen were not yet confirmed.

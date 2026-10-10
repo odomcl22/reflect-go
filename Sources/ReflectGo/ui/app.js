@@ -17,6 +17,13 @@ async function api(path, body) {
   if (!r.ok) throw Error(await r.text());
   return r.json();
 }
+function applyTheme(theme) {
+  document.documentElement.dataset.theme = theme;
+  // The native window follows the same setting without polling files on the
+  // drive. Browsers have no native bridge and simply use the CSS theme.
+  try { window.webkit?.messageHandlers?.appearance?.postMessage(theme); }
+  catch (e) { console.error('Reflect Go could not update the native appearance', e); }
+}
 function error(e) { $('error').textContent = e.message || String(e); $('error').hidden = false; }
 function clearError() { $('error').hidden = true; }
 function hostKey() { return inv ? [inv.hardware.os, inv.hardware.architecture, inv.hardware.cpu, inv.hardware.physicalMemoryBytes].join('|') : ''; }
@@ -362,7 +369,7 @@ $('chat-model').onchange=()=>{$('chat-timing').textContent='The next response us
 $('chat-send').onclick=async()=>{const text=$('chat-input').value.trim();if(!text||chatController||chatStopping)return;clearError();messages.push({role:'user',content:text});message('user',text);$('chat-input').value='';const output=message('assistant','Loading model if needed…');chatController=new AbortController();$('chat-stop').hidden=false;controls();let reply='',pending='',first=0,finished=false;const started=performance.now();try{const response=await fetch('/api/chat',{method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({model:$('chat-model').value,messages}),signal:chatController.signal});if(!response.ok)throw Error(await response.text());const reader=response.body.getReader(),decoder=new TextDecoder();chatReader=reader;while(true){const part=await reader.read();if(part.done)break;pending+=decoder.decode(part.value,{stream:true});const lines=pending.split('\n');pending=lines.pop();for(const line of lines){if(!line.startsWith('data:'))continue;const data=line.slice(5).trim();if(data==='[DONE]'){finished=true;continue;}if(!data)continue;let event;try{event=JSON.parse(data)}catch{continue}if(event.error)throw Error(event.error.message||'Model response failed');const delta=event.choices?.[0]?.delta?.content;if(delta){if(!first){first=performance.now();$('chat-timing').textContent='First response: '+((first-started)/1000).toFixed(2)+' s';}reply+=delta;output.textContent=reply;}}}if(!finished)throw Error('The response stream ended early. Retry or check Diagnostics.');if(!reply)output.textContent='The model returned no text.';}catch(e){if(e.name==='AbortError'||chatController?.signal.aborted){output.textContent=(reply||'')+'\n[Response stopped]';}else{output.textContent=(reply||'')+'\n[Response failed: '+e.message+']';error(e)}}finally{if(reply)messages.push({role:'assistant',content:reply});else messages.pop();chatController=null;chatReader=null;$('chat-stop').hidden=true;controls();}};
 async function stopChat(){if(!chatController)return;chatStopping=true;chatController.abort();chatReader?.cancel().catch(()=>{});try{await api('chat/cancel',{})}catch(e){error(e)}finally{chatStopping=false;controls()}}
 $('chat-stop').onclick=stopChat;$('new-chat').onclick=()=>{messages=[];$('messages').replaceChildren();$('chat-timing').textContent='';};
-$('theme').onchange=async()=>{document.documentElement.dataset.theme=$('theme').value;try{await api('preferences',{theme:$('theme').value})}catch(e){error(e)}};
+$('theme').onchange=async()=>{applyTheme($('theme').value);try{await api('preferences',{theme:$('theme').value})}catch(e){error(e)}};
 $('quit').onclick=async()=>{if((engine?.active||download?.active)&&!confirm('Stop the engine, pause downloads, and quit? Finish client tasks first.'))return;chatController?.abort();try{await api('download/cancel',{});await api('quit',{});closed=true;sessionStorage.removeItem(storeKey);$('connection').hidden=false;$('connection').textContent='Workstation closed. Eject after the launcher exits.';document.querySelectorAll('button,input,select,textarea').forEach(el=>el.disabled=true);}catch(e){error(e)}};
 $('copy').onclick=async()=>{try{await navigator.clipboard.writeText(JSON.stringify(lastReport,null,2));$('copy').textContent='Copied'}catch{error(Error('Clipboard access unavailable. Select and copy the report below.'))}};
 function showPage(id) {
@@ -374,7 +381,7 @@ document.querySelectorAll('.nav').forEach(button => button.onclick = () => showP
 $('go-library').onclick = () => showPage('library');
 (async () => {
   const preparation = await Promise.allSettled([
-    (async () => { const p = await api('preferences'); $('theme').value = p.theme; document.documentElement.dataset.theme = p.theme; })(),
+    (async () => { const p = await api('preferences'); $('theme').value = p.theme; applyTheme(p.theme); })(),
     (async () => { catalog = (await api('catalog')).models || []; renderCatalog(); })(),
     loadLaunchPreferences()
   ]);

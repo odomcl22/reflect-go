@@ -7,17 +7,69 @@ import json
 import os
 from pathlib import Path
 import plistlib
+import re
 import shutil
 import subprocess
+import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 TARGETS = ['macos-arm64', 'macos-x64', 'windows-x64', 'windows-arm64', 'linux-x64', 'linux-arm64']
+PREVIEW_VERSION = '0.4.7'
+PREVIEW_BUILD = '47'
+PREVIEW_FOLDER = 'Phase 4.7'
+
+def preview_bundle_identifier(version=PREVIEW_VERSION):
+    """Preserved previews must not compete for one macOS application identity."""
+    if not re.fullmatch(r'\d+\.\d+\.\d+', version):
+        raise ValueError('Preview version must contain major.minor.patch numbers.')
+    return 'local.reflectgo.workstation.preview.v' + version.replace('.', '-')
+
+def preview_info(source_info):
+    info = dict(source_info)
+    info.update(
+        CFBundleIdentifier=preview_bundle_identifier(),
+        CFBundleShortVersionString=PREVIEW_VERSION,
+        CFBundleVersion=PREVIEW_BUILD,
+        NSDocumentsFolderUsageDescription='Reflect Go reads its portable software, model weights and settings in the folder you open it from.',
+    )
+    return info
+
+def matching_native_pids(process_output, executable):
+    """Match the full executable path, not another preview with the same name."""
+    executable = Path(executable).resolve()
+    pids = []
+    for line in process_output.splitlines():
+        fields = line.strip().split(maxsplit=1)
+        if len(fields) != 2 or not fields[0].isdigit():
+            continue
+        command = Path(fields[1])
+        if command.is_absolute() and command.name == executable.name and command.resolve() == executable:
+            pids.append(int(fields[0]))
+    return pids
+
+def require_native_app_stopped(destination):
+    if sys.platform != 'darwin':
+        return
+    executable = destination/'Reflect Go.app/Contents/MacOS/ReflectGo'
+    try:
+        result = subprocess.run(['/bin/ps', '-axww', '-o', 'pid=,comm='],
+                                check=True, capture_output=True, text=True)
+    except (OSError, subprocess.CalledProcessError) as error:
+        raise SystemExit('Could not check whether this Reflect Go preview is running. Close the target app and retry; no running app will be rebuilt.') from error
+    pids = matching_native_pids(result.stdout, executable)
+    if pids:
+        raise SystemExit('Close Reflect Go in ' + str(destination) + ' before rebuilding it (PID ' + ', '.join(map(str, pids)) + '). The build will not replace a running app or stop it for you.')
 
 def assemble(source, destination, refresh=False):
+    if refresh and destination.name != PREVIEW_FOLDER:
+        raise SystemExit('Refresh is restricted to ' + PREVIEW_FOLDER)
     if destination.exists() and not refresh:
         raise SystemExit('Destination exists; choose a fresh directory to preserve prior builds.')
     if not (source / 'manifest.json').is_file():
         raise SystemExit('A prepared Phase 4.6 software package is required.')
+    # Replacing/signing the native binary while it is loaded changes the code
+    # identity macOS sees for that running process. Refuse before any writes.
+    require_native_app_stopped(destination)
     # Copy software only. Hard links reduce space for immutable runtime/client
     # packs; unlink all rebuilt files before writing. The app is a separate copy.
     if not refresh:
@@ -42,9 +94,11 @@ def assemble(source, destination, refresh=False):
         out=temporary/arch;slices.append(str(out))
         subprocess.run(['/usr/bin/xcrun','swiftc','-parse-as-library','-O','-target',arch+'-apple-macosx13.3','-module-cache-path',str(ROOT/'.build/module-cache'),str(ROOT/'Sources/PortableWorkstation.swift'),'-o',str(out)],check=True)
     app=destination/'Reflect Go.app'
+    # Compilation can take time; the user may have opened the target meanwhile.
+    require_native_app_stopped(destination)
     subprocess.run(['/usr/bin/lipo','-create',*slices,'-output',str(app/'Contents/MacOS/ReflectGo')],check=True)
-    info_path=app/'Contents/Info.plist';info=plistlib.loads(info_path.read_bytes());info.update(CFBundleShortVersionString='0.4.7',CFBundleVersion='47',NSDocumentsFolderUsageDescription='Reflect Go reads its portable software, model weights and settings in the folder you open it from.');info_path.write_bytes(plistlib.dumps(info))
-    subprocess.run(['/usr/bin/codesign','--force','--sign','-',str(app)],check=True)
+    info_path=app/'Contents/Info.plist';info=preview_info(plistlib.loads(info_path.read_bytes()));info_path.write_bytes(plistlib.dumps(info))
+    subprocess.run(['/usr/bin/codesign','--force','--sign','-','--identifier',preview_bundle_identifier(),str(app)],check=True)
     for display,name in [('Codex','codex'),('Claude','claude'),('OpenCode','opencode')]:
         path=destination/('Connect '+display+'.command');path.unlink(missing_ok=True)
         path.write_text('#!/bin/sh\nROOT=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)\nexec /bin/sh "$ROOT/Reflect Go.sh" connect '+name+' --project "${1-}" --hold\n');path.chmod(0o755)
@@ -72,5 +126,4 @@ if __name__=='__main__':
     parser.add_argument('--destination',type=Path,default=ROOT/'dist/Reflect Go/Phase 4.7')
     parser.add_argument('--refresh',action='store_true',help='Rebuild an existing development preview; never use on preserved phases')
     args=parser.parse_args()
-    if args.refresh and args.destination.name != 'Phase 4.7':raise SystemExit('Refresh is restricted to Phase 4.7')
     assemble(args.source.resolve(),args.destination.resolve(),args.refresh)

@@ -8,6 +8,9 @@ import WebKit
     private var web: WKWebView!
     private var process: Process?
     private var owner: Pipe?
+    private var startupOutput: Pipe?
+    private var startupBytes = Data()
+    private var failing = false
     private var timer: Timer?
     private var base: URL?
     private var quitting = false
@@ -24,6 +27,7 @@ import WebKit
         let config = WKWebViewConfiguration()
         config.websiteDataStore = .nonPersistent()
         config.userContentController.add(self, name: "chooseProject")
+        config.userContentController.add(self, name: "appearance")
         web = WKWebView(frame: .zero, configuration: config)
         web.navigationDelegate = self
         web.uiDelegate = self
@@ -51,7 +55,7 @@ import WebKit
             editMenu.addItem(withTitle: title, action: NSSelectorFromString(selector), keyEquivalent: key)
         }
         NSApp.mainMenu = menu
-        let child = Process(), pipe = Pipe()
+        let child = Process(), pipe = Pipe(), output = Pipe()
         child.executableURL = root.appendingPathComponent("bin/\(platform)/reflectgo")
         child.arguments = ["ui"]
         var env = ProcessInfo.processInfo.environment
@@ -59,21 +63,46 @@ import WebKit
         env["REFLECT_GO_UI_OWNED"] = "1"
         child.environment = env
         child.standardInput = pipe
-        child.standardOutput = FileHandle.nullDevice
+        child.standardOutput = output
+        startupOutput = output
+        output.fileHandleForReading.readabilityHandler = { [weak self] handle in
+            let data = handle.availableData
+            if data.isEmpty { handle.readabilityHandler = nil; return }
+            Task { @MainActor [weak self] in self?.receiveStartup(data) }
+        }
         child.standardError = FileHandle.nullDevice
         process = child; owner = pipe
         do { try child.run() } catch { fail("Could not open the portable workstation. Keep the app beside its bin and runtime folders.\n\(error.localizedDescription)"); return }
         started = Date()
         timer = Timer.scheduledTimer(withTimeInterval: 0.25, repeats: true) { [weak self] _ in
-            Task { @MainActor in self?.check(root) }
+            Task { @MainActor in self?.check() }
         }
     }
-    private func check(_ root: URL) {
-        guard let process else { return }
-        if let data = try? Data(contentsOf: root.appendingPathComponent("state/appearance.json")), let value = (try? JSONSerialization.jsonObject(with: data)) as? [String: String] {
-            let theme = value["theme"]
-            window.appearance = theme == "dark" ? NSAppearance(named: .darkAqua) : theme == "light" ? NSAppearance(named: .aqua) : nil
+    // The backend alone opens drive files. Its private stdout pipe announces
+    // readiness; polling Documents from two processes can multiply access prompts.
+    private func receiveStartup(_ data: Data) {
+        guard base == nil, !quitting, !failing else { return }
+        guard startupBytes.count + data.count <= 16_384 else {
+            fail("The workstation sent an invalid startup response. Reopen the complete Reflect Go package."); return
         }
+        startupBytes.append(data)
+        guard let newline = startupBytes.firstIndex(of: 10) else { return }
+        let line = startupBytes.prefix(upTo: newline)
+        guard let value = (try? JSONSerialization.jsonObject(with: line)) as? [String: String],
+              let address = value["base_url"], let token = value["token"],
+              let url = URL(string: address), url.host == "127.0.0.1", url.scheme == "http",
+              let port = url.port, (1...65535).contains(port), url.user == nil, url.password == nil,
+              url.path.isEmpty, url.query == nil, url.fragment == nil,
+              token.count == 64, token.allSatisfy({ $0.isHexDigit }),
+              let authenticated = URL(string: address + "/#" + token) else {
+            fail("The workstation could not authenticate its startup connection. Reopen the complete Reflect Go package."); return
+        }
+        startupBytes.removeAll()
+        base = url
+        web.load(URLRequest(url: authenticated))
+    }
+    private func check() {
+        guard let process, !failing else { return }
         if !process.isRunning {
             timer?.invalidate()
             if quitting { NSApp.reply(toApplicationShouldTerminate: true) }
@@ -81,25 +110,16 @@ import WebKit
             else { fail("The workstation could not start. Another instance may be open. Close it and reopen Reflect Go, or use Reflect Go.sh to see the startup error.") }
             return
         }
-        if base == nil {
-            let session = root.appendingPathComponent("state/browser-session.json")
-            if let data = try? Data(contentsOf: session),
-               let value = (try? JSONSerialization.jsonObject(with: data)) as? [String: String],
-               let address = value["base_url"], let token = value["token"],
-               let url = URL(string: address), url.host == "127.0.0.1", url.scheme == "http",
-               token.count == 64, token.allSatisfy({ $0.isHexDigit }),
-               let authenticated = URL(string: address + "/#" + token) {
-                base = url
-                web.load(URLRequest(url: authenticated))
-            } else if Date().timeIntervalSince(started) > 120 {
-                owner?.fileHandleForWriting.closeFile()
-                process.terminate()
-                fail("Startup timed out. Check for a macOS request to access Documents or the removable drive, allow it, then reopen Reflect Go. Also check that the drive is writable and the complete package is present.")
-            }
+        if base == nil && Date().timeIntervalSince(started) > 120 {
+            fail("Startup timed out. Check for a macOS request to access Documents or the removable drive, allow it, then reopen Reflect Go. Keep older previews closed while trying this version.")
         }
     }
     private func fail(_ message: String) {
+        guard !failing else { return }
+        failing = true
         timer?.invalidate()
+        owner?.fileHandleForWriting.closeFile()
+        if base == nil, let process, process.isRunning { process.terminate() }
         let alert = NSAlert(); alert.messageText = "Reflect Go could not start"; alert.informativeText = message; alert.runModal()
         owner?.fileHandleForWriting.closeFile()
         NSApp.terminate(nil)
@@ -120,11 +140,16 @@ import WebKit
         panel.beginSheetModal(for: window) { result in completionHandler(result == .OK ? panel.urls : nil) }
     }
     func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
-        guard message.name == "chooseProject", message.frameInfo.isMainFrame,
+        guard message.frameInfo.isMainFrame,
               let base, message.frameInfo.securityOrigin.protocol == "http",
               message.frameInfo.securityOrigin.host == base.host,
-              message.frameInfo.securityOrigin.port == base.port,
-              !choosingProject else { return }
+              message.frameInfo.securityOrigin.port == base.port else { return }
+        if message.name == "appearance" {
+            guard let theme = message.body as? String, ["dark", "light", "system"].contains(theme) else { return }
+            window.appearance = theme == "dark" ? NSAppearance(named: .darkAqua) : theme == "light" ? NSAppearance(named: .aqua) : nil
+            return
+        }
+        guard message.name == "chooseProject", !choosingProject else { return }
         choosingProject = true
         let panel = NSOpenPanel()
         panel.title = "Choose a project folder"
@@ -146,6 +171,14 @@ import WebKit
     func windowShouldClose(_ sender: NSWindow) -> Bool { NSApp.terminate(nil); return false }
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
         guard let process, process.isRunning else { return .terminateNow }
+        // No client or model can be started before the startup handshake.
+        // A helper waiting for folder approval cannot read EOF on its owner pipe.
+        if base == nil || failing {
+            timer?.invalidate()
+            owner?.fileHandleForWriting.closeFile()
+            process.terminate()
+            return .terminateNow
+        }
         if quitting { return .terminateLater }
         let alert = NSAlert(); alert.messageText = "Stop Reflect Go and close?"; alert.informativeText = "Finish client tasks first. The engine will stop and active downloads will pause before the drive can be ejected."
         alert.addButton(withTitle: "Stop and quit"); alert.addButton(withTitle: "Keep running")

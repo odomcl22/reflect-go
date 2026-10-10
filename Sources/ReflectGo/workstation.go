@@ -489,9 +489,29 @@ func (m *EngineManager) quickTest() (string, error) {
 	}
 	return result.Choices[0].Message.Content, nil
 }
+
+// announceUISession keeps the owned native launch handshake on its private
+// stdout pipe. Ordinary launchers receive only the unauthenticated base URL;
+// their authenticated link remains in the protected state file/browser launch.
+func announceUISession(session UISession, stdout, stderr io.Writer) error {
+	owned := os.Getenv("REFLECT_GO_UI_OWNED") == "1"
+	if owned && os.Getenv("REFLECT_GO_NO_BROWSER") == "1" {
+		return json.NewEncoder(stdout).Encode(session)
+	}
+	output := stdout
+	if owned {
+		output = stderr
+	}
+	_, err := fmt.Fprintf(output, "Reflect Go workstation: %s\nKeep this launcher running. Use Quit workstation before ejecting.\n", session.Base)
+	return err
+}
+
 func serveUI(root string) error {
 	uiLock, err := lockNamed(root, "browser-ui.lock")
 	if err != nil {
+		if os.Getenv("REFLECT_GO_UI_OWNED") == "1" {
+			return fmt.Errorf("Reflect Go is already open from this folder, or its session is unavailable. Close its existing window or launcher, then open this app again: %w", err)
+		}
 		return reopenUI(root)
 	}
 	defer uiLock.Close()
@@ -670,7 +690,9 @@ func serveUI(root string) error {
 		return err
 	}
 	defer os.Remove(page)
-	fmt.Printf("Reflect Go workstation: %s\nKeep this launcher running. Use Quit workstation before ejecting.\n", base)
+	if err = announceUISession(UISession{Base: base, Token: token}, os.Stdout, os.Stderr); err != nil {
+		return err
+	}
 	if os.Getenv("REFLECT_GO_NO_BROWSER") != "1" {
 		if err = openBrowser(uri); err != nil {
 			fmt.Fprintf(os.Stderr, "Open %s in your browser.\n", page)
