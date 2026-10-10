@@ -46,14 +46,29 @@ Regression tests added: `TestDesktopQuitAllowsTimeForAppConfirmation` (the wait 
 
 **Disconnect: passed.** *Restore previous settings* asked to restart ChatGPT. Its quit confirmation was answered, and it reopened signed in with existing chats. The model was back to `gpt-6.1-sol`, the catalog and base-URL keys were removed, `reflect-go-models.json` was removed, the restore journal was removed, `auth.json` was unchanged, and the parsed config matched the original apart from ChatGPT's own update.
 
-**Not yet tested** (none should be read as passing):
-- the visible `CODEX LOCAL OK` reply
-- the second warm reply
-- cancellation
-- reconnect followed by Quit-time restoration
-- the optional tool test
+**Message and cancellation test (resumed 19:45, same session, with full-screen control approved).** Reflect Go reconnected Codex Desktop after the earlier Disconnect: ChatGPT's quit confirmation was answered, it restarted, and the journal was created. A new project, *Reflect Go Codex Test*, was created in ChatGPT on an empty disposable folder. The picker was explicitly set to **Reflect Go · Qwen3-4B-Instruct-2507-Q4…**, listed above the cloud models. Every reply was read in the native conversation and correlated with the phase's `workstation-engine.log`.
 
-ChatGPT defaulted the new task to the real *Reflect On The Go* repository, and this account's Codex profile runs with `approval_policy = "never"` and `sandbox_mode = "danger-full-access"`. Sending local-model prompts there was judged unsafe. Choosing a disposable folder needs the system folder picker, which the background controller cannot operate, and full-screen control was not approved during the session. The connection was disconnected rather than left pointing scheduled tasks at the local model. Resume at handoff step 4 with a disposable project selected.
+| Step | Prompt | Visible reply | Engine evidence | Time |
+| --- | --- | --- | --- | --- |
+| 6–7 cold | `Connection check: reply exactly CODEX LOCAL OK. Do not use tools, run commands, or read or change files.` | `CODEX LOCAL OK` | 8,058 prompt tokens in 66.1 s (122 tok/s), 5 generated; progress advanced steadily | ≈70 s to visible reply |
+| 8 warm | `Reply exactly CODEX SECOND OK. Do not use tools.` | `CODEX SECOND OK` | 17 new prompt tokens (prefix cache reused), 5 generated, 1.8 s | ≈2 s engine |
+| 9 cancel | `Count from 1 to 400, writing each number as a word on its own line. Do not use tools.` | Streaming stopped at "twenty-six"; UI showed *You stopped after…* | `stop: cancel task, id_task = 191`, slot released | — |
+| 9 after stop | `Reply exactly CODEX AFTER STOP OK. Do not use tools.` | `CODEX AFTER STOP OK` | completed normally | a few seconds |
+| 11 fresh task | `Reply exactly CODEX FRESH OK. Do not use tools.` | `CODEX FRESH OK` | 1,823 new prompt tokens, 6 generated, 19.0 s | ≈19 s |
+
+There were no retries, stuck UI, refreshes or engine errors. Codex also sends small side requests (conversation titles and suggestions, 260–310 prompt tokens) to the selected local model. The disposable folder was still empty afterwards.
+
+**Quit restoration: passed.** *Stop and quit* restored the profile, ChatGPT's quit confirmation was answered, and ChatGPT reopened signed in on GPT-6.1 Sol. The restore journal and `reflect-go-models.json` were removed, and all Reflect Go processes and the engine exited. `model`, `openai_base_url` and `model_catalog_json` match the original, and `auth.json` is unchanged.
+
+**Residual changes made by ChatGPT, not Reflect Go:**
+- Accepting ChatGPT's *Trust this folder?* prompt for the disposable folder recorded `trust_level = "trusted"` for the **containing git repository** (`…/Reflect_On_The_Go`), because the folder sat inside it under `.build/`.
+- The *Reflect Go Codex Test* project and its two conversations remain in ChatGPT's sidebar.
+
+Future testers should use a disposable folder **outside any git repository**.
+
+**Not run:** the optional file-tool smoke test (`reflect-go-smoke.txt`). It is not qualified, and this account's profile runs without approvals. Saved sanitized screenshots and a redacted engine log are kept locally outside Git under `.build/desktop-qa-claude-20261010/`.
+
+Result: the native Codex Desktop message workflow passes on ChatGPT 26.1007.21159: connect, picker, visible reply, warm reply, cancellation, reconnect, Disconnect and Quit restoration. Cold first-turn latency is about 70 s on this M1 because Codex sends about 8K prompt tokens. Coding/tool workflows remain unqualified.
 
 ## Completed checks
 
