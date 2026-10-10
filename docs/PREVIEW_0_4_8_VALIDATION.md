@@ -23,6 +23,8 @@ Live Disconnect restored both Claude and OpenCode without signing out. A subsequ
 
 The full Go suite passes, and the changed backend compiles for macOS, Windows and Linux on x64 and ARM64. Compilation is not physical-device qualification. No updated public archives have been published from this follow-up; desktop release qualification remains open.
 
+The [Codex Desktop test handoff](CODEX_DESKTOP_TEST_HANDOFF.md) records the exact native test steps, existing implementation, and isolated app-server diagnostic for an independent tester.
+
 ## Completed checks
 
 - Complete Go test suite passed. New tests cover local/native routing, gzip/zstd requests, account-header isolation, context limits, bounded Claude output, JSON/TOML profile restoration, JSONC comments, temporary credential cleanup and concurrent-setting protection. Existing restart consent, cancellation and rollback tests also pass.
