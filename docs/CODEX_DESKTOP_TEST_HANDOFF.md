@@ -1,6 +1,6 @@
 # Codex Desktop test handoff
 
-> **Status, 2026-10-10:** steps 1–11 passed on ChatGPT 26.1007.21159 after three connect fixes; only the optional tool test is open. See [the results](PREVIEW_0_4_8_VALIDATION.md#native-codex-desktop-test-from-claude-code-2026-10-10). For repeat runs:
+> **Status, 2026-10-10 (late):** the required coding/tool test below **passed natively** on ChatGPT 26.1007.21159: real read, edit and `python3 smoke.py` shell events, `LOCAL TOOL OK`, and independent file and execution checks. The model made two failed `read_mcp_resource` calls first. Disconnect and Quit restoration passed. Namespace tools are a documented limitation, not a coding blocker. The gateway 409 overlap is fixed by queueing in the local build; harnesses that hit it need a native retest. See [the coding results](PREVIEW_0_4_8_VALIDATION.md#native-codingtool-test-2026-10-10). Earlier status: message, cancellation and restoration steps 1–11 passed after three connect fixes. See [the message results](PREVIEW_0_4_8_VALIDATION.md#native-codex-desktop-test-from-claude-code-2026-10-10). For repeat runs:
 > - Select a disposable project **outside any git repository** before sending anything. ChatGPT defaults to the last project, and its folder-trust prompt trusts the containing repository.
 > - Expect ChatGPT's own *Quit ChatGPT?* confirmation on every restart, and answer it within 45 seconds.
 
@@ -28,7 +28,7 @@ The responses were correlated with the local llama.cpp engine log. OpenCode's ea
 
 Private screenshots are retained locally under `.build/desktop-qa-20261010/`: `opencode-updated-ok.png` and `deepseek-ready.jpg`. No saved Claude screenshot is part of this handoff; its reply was observed in the native accessibility tree. Do not publish raw profiles, logs, journals, or screenshots containing unrelated projects/account information.
 
-Codex's **installed app-server** discovered the offered model and completed a real local turn in about 14 seconds using a temporary profile. That test did not exercise the running desktop window, its model picker, or the real account's restart/restoration cycle. Those remain the task here. See [the full validation report](PREVIEW_0_4_8_VALIDATION.md#follow-up-desktop-testing).
+Codex's **installed app-server** initially discovered the offered model and completed a real local turn using a temporary profile. Claude Code subsequently verified the native picker, visible replies, cancellation and account restoration on ChatGPT 26.1007.21159. Those message-only results were independently checked against screenshots, engine timings and restored configuration. The remaining native task is the required coding/tool test below. See [the full validation report](PREVIEW_0_4_8_VALIDATION.md#follow-up-desktop-testing).
 
 ## Use the correct desktop application
 
@@ -36,7 +36,7 @@ On this Mac the installed targets were:
 
 | Application | Bundle ID | Version | Test role |
 | --- | --- | --- | --- |
-| `/Applications/ChatGPT.app` | `com.openai.codex` | `26.1002.52244` | The Codex desktop adapter's actual target. |
+| `/Applications/ChatGPT.app` | `com.openai.codex` | `26.1007.21159` | The Codex desktop adapter's actual target. |
 | `/Applications/ChatGPT Classic.app` | `com.openai.chat` | `1.2026.184` | A separate application; testing it does not qualify this connector. |
 
 The adapter does not redirect ordinary ChatGPT chat or voice. Test **Codex mode with a new task and an explicitly selected Reflect Go model**. The names/versions above describe the inspected installation; confirm them again if the apps have been updated or moved.
@@ -45,7 +45,7 @@ Run the test controller outside the target ChatGPT/Codex app. Finish active Code
 
 ## Native test: exact steps
 
-1. Open the patched `dist/Reflect Go/Phase 4.8/Reflect Go.app`. The footer should show `0.4.8-preview`; the installed backend must include commit `196b7be`'s fixes, since the version label alone does not distinguish the old ZIP.
+1. Open the patched `dist/Reflect Go/Phase 4.8/Reflect Go.app`. The footer should show `0.4.8-preview`; the installed backend must include commits `196b7be` and `b7bffa5`, since the version label alone does not distinguish the old ZIP.
 2. In **Models**, offer the Qwen3 4B model above and make it the default. For this first test, offer only that one model. The service can start automatically when connecting.
 3. In **Apps → More apps**, choose **Connect Codex Desktop**. Confirm the desktop restart after current work is finished. If a smaller-context service is already running, finish its client tasks and allow Reflect Go to restart it at 49,152 tokens.
 4. In the reopened ChatGPT/Codex app, start a **new Codex task**. Use a disposable empty project folder selected inside the desktop app. Desktop apps currently choose their own projects; Reflect Go's project field applies to CLI/web adapters.
@@ -60,7 +60,36 @@ Run the test controller outside the target ChatGPT/Codex app. Finish active Code
 10. Finish the task, then use Reflect Go's **Disconnect** for Codex. Allow the normal restart. Verify the previous model/provider settings and account access return without signing out. Inspect restoration locally; never paste credentials into the report.
 11. Connect again, send another short local message in a fresh task, then **Quit Reflect Go**. Verify the same restoration, the removal of the current phase's `state/codex-desktop-restore.json`, and shutdown of Reflect Go's owned services. A restoration conflict must be reported and preserved, not resolved by deleting the journal or overwriting another application's changes.
 
-If tools are to be qualified as well, use only the disposable project: ask Codex to create `reflect-go-smoke.txt` containing `LOCAL TOOL OK`, read it back, and stop. Retain normal approval/sandbox controls. Verify the file on disk and ensure no other project was touched. Record this separately from the message-only test; a reply does not prove a coding workflow works.
+## Required coding/tool test for Claude Code to run
+
+Run this from Claude Code or another controller outside ChatGPT/Codex Desktop. Do not restart the desktop while it is doing unrelated work. The test needs the patched local package, the same Qwen3 4B model, and a fresh native task explicitly using the Reflect Go model. Preserve the user's account and normal approval controls; do not enable bypass permissions to make it pass.
+
+1. Create a new disposable directory under `/private/tmp`, **outside every Git repository**, and put this exact `smoke.py` in it. Do not use the repository's `.build` directory as the native task's project.
+
+   ```python
+   def add(a, b):
+       return a - b
+
+   if __name__ == "__main__":
+       assert add(2, 3) == 5
+       assert add(-2, 2) == 0
+       print("LOCAL TOOL OK")
+   ```
+
+2. Record the seed hash and the engine-log position. Connect Codex Desktop using Reflect Go, answer ChatGPT's normal quit confirmation within 45 seconds, and select the disposable directory in a **new native task**. Verify the Reflect Go model picker selection again. No cloud fallback is acceptable.
+3. Substitute the actual directory in this prompt and send it through the native composer:
+
+   > In the selected disposable folder PATH, read smoke.py using your file tool. Fix only the add function so it adds its arguments instead of subtracting. Keep the existing assertions. Then actually run python3 smoke.py in that folder with your command tool. Report the observed output and exit code. Do not just describe the steps: perform the edit and command. Do not read or change files outside this folder, use the network, install software, or change settings.
+
+4. Observe the actual file-read, edit and command tool events, including any approvals. Accept only the bounded operations requested above. A proposed command, code block, or assistant claim is not execution. The expected diff is solely `return a - b` → `return a + b`; the command must finish with exit code 0 and output `LOCAL TOOL OK`.
+5. Independently read the resulting file from the controller, confirm both assertions remain unchanged, and run it again. Keep this independent verification distinct from the harness's own command execution. Correlate the native tool round trips with fresh llama.cpp inference in `state/workstation-engine.log`. Save local screenshots and sanitized timing/error evidence.
+6. Disconnect and test normal Quit restoration after the work completes. Verify the prior model/provider settings, unchanged sign-in credentials, removal of `~/.codex/reflect-go-models.json` and the phase's `state/codex-desktop-restore.json`. Report any newly added trust entry for this disposable directory; do not remove unrelated entries or delete a restoration-conflict journal.
+
+**Known issue to investigate first if tools are missing:** the saved message-only engine log contains 210 `unsupported Responses tool type 'namespace'` warnings and 10 `web_search` warnings. The existing `desktop_codex.go` proxy forwards Responses tools without converting namespace definitions. Message replies therefore do not prove that the model received Codex's coding tools. Inspect the actual request and response shapes privately; do not publish headers, credentials, private URL prefixes or unrelated project data. If conversion is necessary, preserve tool names, argument schemas, call IDs, output routing and streaming events across all tool round trips. Do not silently drop coding tools or replace native tool execution with controller-side edits. Add regression tests for the demonstrated protocol mismatch, rebuild the local backend, and repeat this **native** test before calling the fix complete.
+
+**Shared first-turn issue reproduced during the other harness tests:** Claude, OpenCode and DeepSeek all encountered HTTP 409 when a background request, such as title generation, overlapped the main request. `gateway.go` uses `lease.TryLock()` and rejects competing requests immediately. Check for this separately from the Codex tool-schema issue. Record any retry as part of the result; a later successful turn does not erase the first-launch failure. See [the coding test results](PREVIEW_0_4_8_VALIDATION.md#native-codingtool-test-2026-10-10). These tests have not changed application code or published replacement binaries.
+
+Report each stage separately: read, edit, command, independent file check, local-engine correlation and restoration. If the model emits malformed calls or the harness rejects them, retain the exact sanitized error and classify that stage as failed. Keep the public preview binaries unchanged until release qualification is complete.
 
 ## How the connections are implemented
 

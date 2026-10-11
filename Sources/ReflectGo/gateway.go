@@ -40,7 +40,8 @@ type GatewayState struct {
 	PID         int     `json:"pid"`
 }
 type ModelGateway struct {
-	lease                         sync.Mutex
+	leaseOnce                     sync.Once
+	leaseSlot                     chan struct{}
 	mu                            sync.Mutex
 	root, key, host, defaultModel string
 	models                        map[string]Model
@@ -49,6 +50,42 @@ type ModelGateway struct {
 	state                         GatewayState
 	target                        string
 }
+
+// Desktop clients send background requests (conversation titles, suggestions)
+// alongside the main turn. One inference runs at a time; others wait their turn
+// instead of failing with 409, unless the client leaves or the wait runs long.
+var gatewayQueueWait = 10 * time.Minute
+
+func (g *ModelGateway) lease() chan struct{} {
+	g.leaseOnce.Do(func() { g.leaseSlot = make(chan struct{}, 1) })
+	return g.leaseSlot
+}
+func (g *ModelGateway) acquire(ctx context.Context) error {
+	select {
+	case g.lease() <- struct{}{}:
+		return nil
+	default:
+	}
+	var stopping <-chan struct{}
+	if g.ctx != nil {
+		stopping = g.ctx.Done()
+	}
+	timer := time.NewTimer(gatewayQueueWait)
+	defer timer.Stop()
+	select {
+	case g.lease() <- struct{}{}:
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-stopping:
+		return context.Canceled
+	case <-timer.C:
+		return errGatewayBusy
+	}
+}
+func (g *ModelGateway) release() { <-g.lease() }
+
+var errGatewayBusy = errors.New("the local model is busy")
 
 func (g *ModelGateway) snapshot() GatewayState { g.mu.Lock(); defer g.mu.Unlock(); return g.state }
 func (g *ModelGateway) setState(stage, model, detail string) {
@@ -111,12 +148,14 @@ func (g *ModelGateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Unsupported local API route", 404)
 		return
 	}
-	if !g.lease.TryLock() {
-		w.Header().Set("Retry-After", "2")
-		http.Error(w, "The local model is busy. Finish or cancel the active response, then retry.", 409)
+	if err := g.acquire(r.Context()); err != nil {
+		if errors.Is(err, errGatewayBusy) {
+			w.Header().Set("Retry-After", "2")
+			http.Error(w, "The local model is busy. Finish or cancel the active response, then retry.", 409)
+		}
 		return
 	}
-	defer g.lease.Unlock()
+	defer g.release()
 	var body map[string]json.RawMessage
 	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 8<<20)).Decode(&body); err != nil {
 		http.Error(w, "Invalid or oversized JSON request", 400)
@@ -331,7 +370,7 @@ func serveGateway(root string, s Settings, o Options, inv Inventory) error {
 	// Cancel active requests before waiting for their lease and unloading the child.
 	cancel()
 	server.Close()
-	g.lease.Lock()
-	defer g.lease.Unlock()
+	// Wait for the active request to finish unwinding before unloading the child.
+	g.lease() <- struct{}{}
 	return err
 }
