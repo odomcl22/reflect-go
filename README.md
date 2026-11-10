@@ -23,6 +23,10 @@ subscription or a separate engine installation.
 Choose **Reflect Go** to bring your own models, or **Starter Pack** to download
 the app with Gemma and Muse ready to use. No build tools are required.
 
+**Using an 8 GB or 16 GB Mac? Choose Reflect Go and a small model.** Version
+0.4.9 does not require the large Starter Pack models. IBM Granite 4.0 1B is
+available in the app for a basic chat test; it is not a coding recommendation.
+
 - **Reflect Go** includes the application, inference runtimes, and portable Codex
   and OpenCode CLI clients. Add your own model or download one in the app.
 - **Reflect Go Starter Pack** includes the same software with **Gemma 4 31B
@@ -49,32 +53,56 @@ the app afterward. Allow **60 GB free space** during preparation and use a drive
 that supports files over 4 GB (such as exFAT or APFS, rather than FAT32).
 [Starter Pack instructions](docs/PREVIEW_0_4_9.md).
 
+To prepare the Starter Pack, extract its ZIP and run **Download Reflect Go
+Starter Pack.command** on Mac, **Download Reflect Go Starter Pack.cmd** on
+Windows, or the `.sh` helper on Linux. Keep all extracted helper files together.
+Wait for **Ready**, then open Reflect Go inside the assembled folder.
+
 The extracted app folder has just **one launcher** and **Reflect Go Files**.
 Runtimes, clients, models, settings, and documentation stay inside the support
 folder. Source code stays here on GitHub.
 
 ## Get started
 
-1. **Extract the entire ZIP** into a new folder on your external drive or computer.
-   Keep the launcher beside **Reflect Go Files**.
+1. **Extract the entire Reflect Go ZIP** into a new folder on your external drive
+   or computer. Keep the launcher beside **Reflect Go Files**. For the Starter
+   Pack, run its download helper first, as described above.
 2. **Open Reflect Go:**
    - **Mac:** open `Reflect Go.app` (macOS 13.3 or later).
    - **Windows:** open `Reflect Go.exe`.
    - **Linux:** open `Reflect Go.desktop`; your desktop may require **Allow Launching**.
      A terminal fallback is `sh "Reflect Go Files/Reflect Go.sh"`.
-3. **Add a model** in **Models → Add models**, or use one of the Starter Pack’s
-   included models. For a small chat test, IBM Granite 4.0 1B is an optional download.
-4. **Open your coding client.** Reflect Go starts the local service automatically
-   and supplies your saved model choices. Choosing a project folder or changing
-   which models are available is optional.
+3. **Add a model** in **Models → Add models**, import a compatible GGUF you
+   already have, or use the prepared Starter Pack’s models. Choose a model that
+   fits your computer; the Starter Pack’s large models need a larger machine.
+4. **Start local chat** for a quick check, or **open your coding client** with a
+   suitable coding model. Reflect Go starts the local service automatically and
+   supplies your saved model choices. Choosing a project folder is optional.
 
 For coding and desktop apps, choose a compatible model with enough context and
-memory for the task. The large Starter Pack models have verified download
-checksums; 48/128 GiB hardware performance and desktop tool use are still being
-qualified. Their metadata-based memory profiles support CLI and desktop contexts; actual
-large-host inference and desktop tool use still require qualification. Model size
+memory for the task. Gemma and Muse have verified download checksums and
+metadata-based memory estimates. Actual inference, performance, and desktop
+tool use on 48/128 GiB computers remain untested for these models. Model size
 alone does not establish compatibility.
 [Read the setup guide](docs/PREVIEW_0_4_9.md).
+
+## Try 0.4.9 on a smaller Mac
+
+Use a new folder so your earlier version stays available. With a small model,
+you can check that the app opens, catalog search and filters work, a download
+completes, and local chat replies. Granite 4.0 1B uses CPU automatically on Mac
+in this preview because its Metal path produced invalid output in testing.
+
+To check a coding client, use a suitable coding model and a disposable project
+folder. Ask it to create a text file and run a simple command. Basic chat with a
+tiny model does not establish coding or tool-use reliability. Finish the task,
+then disconnect and quit Reflect Go to check that desktop apps return to their
+previous connection without signing out.
+
+Mac backend, small-model chat, download integrity, and automated checks passed
+during preparation. The updated window still needs a visual check, and testing
+on physical Windows/Linux computers remains pending. See the
+[validation report](docs/PREVIEW_0_4_9_VALIDATION.md) for what was actually tested.
 
 ## Choose your app
 
