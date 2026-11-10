@@ -14,9 +14,9 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 TARGETS = ['macos-arm64', 'macos-x64', 'windows-x64', 'windows-arm64', 'linux-x64', 'linux-arm64']
-PREVIEW_VERSION = '0.4.9'
-PREVIEW_BUILD = '49'
-PREVIEW_FOLDER = 'Phase 4.9'
+PREVIEW_VERSION = '0.4.10'
+PREVIEW_BUILD = '50'
+PREVIEW_FOLDER = 'Phase 4.10'
 
 def preview_bundle_identifier(version=PREVIEW_VERSION):
     """Preserved previews must not compete for one macOS application identity."""
@@ -61,7 +61,7 @@ def require_native_app_stopped(destination):
     if pids:
         raise SystemExit('Close Reflect Go in ' + str(destination) + ' before rebuilding it (PID ' + ', '.join(map(str, pids)) + '). The build will not replace a running app or stop it for you.')
 
-def assemble(source, destination, refresh=False):
+def assemble(source, destination, refresh=False, mac_only=False):
     if refresh and destination.name != PREVIEW_FOLDER:
         raise SystemExit('Refresh is restricted to ' + PREVIEW_FOLDER)
     if destination.exists() and not refresh:
@@ -90,10 +90,12 @@ def assemble(source, destination, refresh=False):
             binary.unlink(missing_ok=True)
             subprocess.run([str(compiler),'build','-trimpath','-ldflags=-s -w'+(' -H=windowsgui' if gui else ''),'-o',str(binary),'.'],cwd=ROOT/'Sources/ReflectGo',env={**env,'GOOS':system,'GOARCH':arch},check=True)
         print('Built',target,flush=True)
+    targets = [target for target in TARGETS if not mac_only or target.startswith('macos-')]
     with concurrent.futures.ThreadPoolExecutor(max_workers=3) as pool:
-        list(pool.map(compile_target,TARGETS))
-    launcher=destination/'START Reflect Go.exe';launcher.unlink(missing_ok=True)
-    subprocess.run([str(compiler),'build','-trimpath','-ldflags=-s -w -H=windowsgui','-o',str(launcher),'.'],cwd=ROOT/'Sources/WindowsLauncher',env={**env,'GOOS':'windows','GOARCH':'386'},check=True)
+        list(pool.map(compile_target,targets))
+    if not mac_only:
+        launcher=destination/'START Reflect Go.exe';launcher.unlink(missing_ok=True)
+        subprocess.run([str(compiler),'build','-trimpath','-ldflags=-s -w -H=windowsgui','-o',str(launcher),'.'],cwd=ROOT/'Sources/WindowsLauncher',env={**env,'GOOS':'windows','GOARCH':'386'},check=True)
     temporary=ROOT/'.build/preview-native';temporary.mkdir(exist_ok=True)
     slices=[]
     for arch in ('arm64','x86_64'):
@@ -137,8 +139,9 @@ def assemble(source, destination, refresh=False):
 
 if __name__=='__main__':
     parser=argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--source',type=Path,default=ROOT/'dist/Reflect Go/Phase 4.8')
-    parser.add_argument('--destination',type=Path,default=ROOT/'dist/Reflect Go/Phase 4.9')
+    parser.add_argument('--source',type=Path,default=ROOT/'dist/Reflect Go/Phase 4.9')
+    parser.add_argument('--destination',type=Path,default=ROOT/'dist/Reflect Go'/PREVIEW_FOLDER)
     parser.add_argument('--refresh',action='store_true',help='Rebuild an existing development preview; never use on preserved phases')
+    parser.add_argument('--mac-only',action='store_true',help='Compile the two Mac targets from a prepared Mac-only source')
     args=parser.parse_args()
-    assemble(args.source.resolve(),args.destination.resolve(),args.refresh)
+    assemble(args.source.resolve(),args.destination.resolve(),args.refresh,args.mac_only)

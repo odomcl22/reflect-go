@@ -282,7 +282,7 @@ func launch(root string, s Settings, o Options, inv Inventory) error {
 			args = append(args, "--single-turn", "--prompt", o.Prompt, "--simple-io", "--color", "off", "--no-display-prompt")
 		}
 	}
-	env, err := runtimeEnv(root, backend.Path)
+	env, err := runtimeEnv(root, backend)
 	if err != nil {
 		return err
 	}

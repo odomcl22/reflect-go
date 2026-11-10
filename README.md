@@ -4,7 +4,7 @@
 an external drive. Open Reflect Go on a compatible computer, choose your app,
 and work with your local model.
 
-**[Download Reflect Go](https://github.com/odomcl22/reflect-go/releases/tag/v0.4.9-preview)** ·
+**[Download Reflect Go](#download)** ·
 [Watch the walkthrough](docs/media/reflect-go-walkthrough.mp4) ·
 [App compatibility](docs/HARNESS_COMPATIBILITY.md)
 
@@ -16,15 +16,15 @@ subscription or a separate engine installation.
 
 [![Watch the Reflect Go interface walkthrough](docs/media/reflect-go-walkthrough.jpg)](docs/media/reflect-go-walkthrough.mp4)
 
-*Walkthrough from an earlier preview. Version 0.4.9 updates the model finder and download layout.*
+*Walkthrough from an earlier preview. The current downloads have a simpler folder layout and a larger model finder.*
 
 ## Download
 
 Choose **Reflect Go** to bring your own models, or **Starter Pack** to download
 the app with Gemma and Muse ready to use. No build tools are required.
 
-**Using an 8 GB or 16 GB Mac? Choose Reflect Go and a small model.** Version
-0.4.9 does not require the large Starter Pack models. IBM Granite 4.0 1B is
+**Using an 8 GB or 16 GB Mac? Choose Reflect Go and a small model.** The app
+does not require the large Starter Pack models. IBM Granite 4.0 1B is
 available in the app for a basic chat test; it is not a coding recommendation.
 
 - **Reflect Go** includes the application, inference runtimes, and portable Codex
@@ -35,15 +35,18 @@ available in the app for a basic chat test; it is not a coding recommendation.
 
 | Platform | Reflect Go | Reflect Go Starter Pack |
 | --- | --- | --- |
-| Mac · Apple Silicon + Intel | [Download ZIP](https://github.com/odomcl22/reflect-go/releases/download/v0.4.9-preview/ReflectGo-0.4.9-macos.zip) | [Download ZIP](https://github.com/odomcl22/reflect-go/releases/download/v0.4.9-preview/ReflectGo-StarterPack-0.4.9-macos.zip) |
+| Mac · Apple Silicon + Intel | [Download 0.4.10](https://github.com/odomcl22/reflect-go/releases/download/v0.4.10-preview/ReflectGo-0.4.10-macos.zip) | [Download 0.4.10 helper](https://github.com/odomcl22/reflect-go/releases/download/v0.4.10-preview/ReflectGo-StarterPack-0.4.10-macos.zip) |
 | Windows · x64 + ARM64 | [Download ZIP](https://github.com/odomcl22/reflect-go/releases/download/v0.4.9-preview/ReflectGo-0.4.9-windows.zip) | [Download ZIP](https://github.com/odomcl22/reflect-go/releases/download/v0.4.9-preview/ReflectGo-StarterPack-0.4.9-windows.zip) |
 | Linux · x64 + ARM64 | [Download ZIP](https://github.com/odomcl22/reflect-go/releases/download/v0.4.9-preview/ReflectGo-0.4.9-linux.zip) | [Download ZIP](https://github.com/odomcl22/reflect-go/releases/download/v0.4.9-preview/ReflectGo-StarterPack-0.4.9-linux.zip) |
 
-**Version: 0.4.9 preview.** Mac downloads are signed and Apple-notarized.
-Windows executables are unsigned and may show a SmartScreen warning. Testing on
-physical Windows and Linux computers is still in progress. See
-[release notes and checksums](https://github.com/odomcl22/reflect-go/releases/tag/v0.4.9-preview)
-and [testing status](docs/PREVIEW_0_4_9_VALIDATION.md).
+**Mac: 0.4.10 preview.** The signed, Apple-notarized update gives first-time
+Metal startup more time and makes CPU mode independent of Metal.
+[Mac release notes and checksums](https://github.com/odomcl22/reflect-go/releases/tag/v0.4.10-preview) ·
+[Mac testing status](docs/PREVIEW_0_4_10_VALIDATION.md).
+
+**Windows and Linux: 0.4.9 preview.** Windows executables are unsigned and may
+show a SmartScreen warning. Physical Windows/Linux testing is still pending.
+[0.4.9 release notes and checksums](https://github.com/odomcl22/reflect-go/releases/tag/v0.4.9-preview).
 
 The Starter Pack transfers about **34.4 GB of weights**, plus the app. Its small
 ZIP contains a download helper that retrieves and verifies all preselected pack
@@ -86,7 +89,7 @@ tool use on 48/128 GiB computers remain untested for these models. Model size
 alone does not establish compatibility.
 [Read the setup guide](docs/PREVIEW_0_4_9.md).
 
-## Try 0.4.9 on a smaller Mac
+## Try Reflect Go on a smaller Mac
 
 Use a new folder so your earlier version stays available. With a small model,
 you can check that the app opens, catalog search and filters work, a download
@@ -99,10 +102,10 @@ tiny model does not establish coding or tool-use reliability. Finish the task,
 then disconnect and quit Reflect Go to check that desktop apps return to their
 previous connection without signing out.
 
-Mac backend, small-model chat, download integrity, and automated checks passed
-during preparation. The updated window still needs a visual check, and testing
-on physical Windows/Linux computers remains pending. See the
-[validation report](docs/PREVIEW_0_4_9_VALIDATION.md) for what was actually tested.
+The first Metal startup can take a few minutes while macOS prepares shaders.
+For a CPU-only check, select **CPU** in the service settings before starting.
+See the [Mac validation report](docs/PREVIEW_0_4_10_VALIDATION.md) for what was
+actually tested.
 
 ## Choose your app
 
@@ -150,13 +153,13 @@ configuration. You do not need to sign out of your accounts.
 Clients can access the project folders you authorize. Installed desktop apps and
 the operating system may keep their own files on the computer. If a connection
 cannot be restored automatically, Reflect Go reports the issue;
-[the setup guide](docs/PREVIEW_0_4_9.md#disconnect-without-signing-out) explains recovery.
+[the compatibility guide](docs/HARNESS_COMPATIBILITY.md) describes the connections.
 
 ## About the project
 
 Reflect Go is in active development. Explore the [roadmap](docs/ROADMAP.md),
 [compatibility details](docs/HARNESS_COMPATIBILITY.md), and
-[validation report](docs/PREVIEW_0_4_9_VALIDATION.md), or
+[validation report](docs/PREVIEW_0_4_10_VALIDATION.md), or
 [report an issue](https://github.com/odomcl22/reflect-go/issues).
 
 Developers can find the application code in [Sources](Sources), build and

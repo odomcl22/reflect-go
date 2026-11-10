@@ -77,12 +77,14 @@ def stage_part(models, specification, name, output):
         raise
 
 
-def posix_script(specification, software, platform):
+def posix_script(specification, software, platform, version=VERSION):
+    if not re.fullmatch(r'\d+\.\d+\.\d+', version):
+        raise ValueError('Starter Pack version must contain three numbers.')
     q = shlex.quote
     required=sum(m['size'] for m in specification['models'])+max(m['size'] for m in specification['models'])+software.get('size',0)+software.get('unpacked_size',0)+(1<<30)
     lines = ['#!/bin/sh', 'set -euC', 'umask 077',
              'SOURCE_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)', 'cd -- "$SOURCE_DIR"',
-             f'mkdir -p "Reflect Go Starter Pack {VERSION}"', f'cd "Reflect Go Starter Pack {VERSION}"',
+             f'mkdir -p "Reflect Go Starter Pack {version}"', f'cd "Reflect Go Starter Pack {version}"',
              'mkdir .starter-work.lock 2>/dev/null || { echo "A Starter Pack download is already active. If its window was closed unexpectedly, remove the empty .starter-work.lock folder before retrying." >&2; exit 1; }',
              'trap \'rmdir .starter-work.lock 2>/dev/null || true\' 0', 'trap \'exit 1\' 1 2 15',
              'credited=0',
@@ -107,7 +109,7 @@ def posix_script(specification, software, platform):
              '  verify "$1.partial" "$2" || { echo "Download verification failed: $1" >&2; exit 1; }',
              '  mv "$1.partial" "$1"', '}',
              'echo "Downloading Reflect Go Starter Pack: Gemma + Muse. Allow about 60 GB of free space."',
-             f'fetch {q(software["name"])} {q(software["sha256"])} {q(BASE+software["name"])}',
+             f'fetch {q(software["name"])} {q(software["sha256"])} {q(software.get("url", BASE+software["name"]))}',
              'if ! test -d "Reflect Go"; then',
              f'  unzip -q {q(software["name"])} -d app-extraction',
              '  mv "app-extraction/Reflect Go" "Reflect Go"',

@@ -58,18 +58,20 @@ class StarterTests(unittest.TestCase):
             with zipfile.ZipFile(app, 'w') as z:
                 z.writestr('Reflect Go/Reflect Go Files/Models/', '')
                 z.writestr('Reflect Go/Reflect Go Files/app.txt', 'verified application fixture')
-            software = dict(name=app.name, sha256=module.digest(app))
+            software = dict(name=app.name, sha256=module.digest(app), url='https://example.org/updated-app/'+app.name)
             downloads = root/'downloads'; downloads.mkdir()
             for name in ('MODEL-NOTICES.txt','MODEL-LICENSE-APACHE-2.0.txt'):
                 (downloads/name).write_text('model notices fixture')
-            script = downloads/'download.sh'; script.write_text(module.posix_script(plan, software, 'linux'))
+            script = downloads/'download.sh'; script.write_text(module.posix_script(plan, software, 'linux', version='0.4.10'))
             # Replace only the network transport with local fixture copies. Run
             # the actual generated shell verification and assembly unchanged.
             tools = root/'tools'; tools.mkdir()
-            curl = tools/'curl'; curl.write_text('#!/bin/sh\nwhile test "$#" -gt 0; do\n if test "$1" = --output; then shift; out=$1; fi\n url=$1; shift\ndone\ncp "$FIXTURE_ASSETS/${url##*/}" "$out"\n'); curl.chmod(0o755)
-            env = {**os.environ, 'PATH': str(tools)+os.pathsep+os.environ['PATH'], 'FIXTURE_ASSETS': str(assets)}
+            curl = tools/'curl'; curl.write_text('#!/bin/sh\nwhile test "$#" -gt 0; do\n if test "$1" = --output; then shift; out=$1; fi\n url=$1; shift\ndone\nprintf "%s\\n" "$url" >> "$FIXTURE_REQUESTS"\ncp "$FIXTURE_ASSETS/${url##*/}" "$out"\n'); curl.chmod(0o755)
+            requests = root/'requests.txt'
+            env = {**os.environ, 'PATH': str(tools)+os.pathsep+os.environ['PATH'], 'FIXTURE_ASSETS': str(assets), 'FIXTURE_REQUESTS': str(requests)}
             subprocess.run(['sh', str(script)], check=True, env=env, capture_output=True)
-            folder = downloads/f'Reflect Go Starter Pack {module.VERSION}'/'Reflect Go'/'Reflect Go Files'
+            self.assertEqual(requests.read_text().splitlines(), [software['url']] + [module.BASE+p['name'] for m in plan['models'] for p in m['parts']])
+            folder = downloads/'Reflect Go Starter Pack 0.4.10'/'Reflect Go'/'Reflect Go Files'
             for m in catalog:
                 self.assertEqual((folder/'Models'/m['filename']).read_bytes(), (models/m['filename']).read_bytes())
             self.assertEqual((folder/'app.txt').read_text(), 'verified application fixture')

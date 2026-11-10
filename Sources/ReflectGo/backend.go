@@ -65,7 +65,8 @@ func platformID() string {
 	}
 	return name + "-" + arch
 }
-func runtimeEnv(root, pack string) ([]string, error) {
+func runtimeEnv(root string, backend Backend) ([]string, error) {
+	pack := backend.Path
 	paths := map[string]string{}
 	for _, name := range []string{"home", "cache", "tmp", "config"} {
 		path, err := statePath(root, name)
@@ -79,6 +80,11 @@ func runtimeEnv(root, pack string) ([]string, error) {
 	}
 	path := pack + string(os.PathListSeparator) + systemPath()
 	env := []string{"PATH=" + path, "HOME=" + paths["home"], "CFFIXED_USER_HOME=" + paths["home"], "XDG_CACHE_HOME=" + paths["cache"], "XDG_CONFIG_HOME=" + paths["config"], "LLAMA_CACHE=" + paths["cache"], "TMPDIR=" + paths["tmp"] + string(filepath.Separator), "TMP=" + paths["tmp"], "TEMP=" + paths["tmp"], "HF_HUB_OFFLINE=1", "LANG=en_US.UTF-8", "LC_ALL=C"}
+	if runtime.GOOS == "darwin" && backend.Kind == "cpu" {
+		// The Mac pack includes Metal even in CPU mode. Its backend registry
+		// initializes shaders before processing --device none or --version.
+		env = append(env, "GGML_METAL_DEVICES=0")
+	}
 	if runtime.GOOS == "linux" {
 		env = append(env, "LD_LIBRARY_PATH="+pack)
 	}
@@ -95,11 +101,18 @@ func runtimeBinary(pack, name string) string {
 	}
 	return filepath.Join(pack, name)
 }
-func probeRuntime(root, path string, args ...string) (string, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+func probeRuntime(root string, backend Backend, args ...string) (string, error) {
+	timeout := 60 * time.Second
+	if backend.Kind == "metal" {
+		// A fresh path or signature can require a cold compile of Metal
+		// kernels. On M1 this can exceed a minute before the device appears.
+		timeout = 3 * time.Minute
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
+	path := backend.Path
 	cmd := exec.CommandContext(ctx, runtimeBinary(path, "llama-server"), args...)
-	env, err := runtimeEnv(root, path)
+	env, err := runtimeEnv(root, backend)
 	if err != nil {
 		return "", err
 	}
@@ -173,7 +186,7 @@ func chooseBackend(root, requested string, cpu bool) Backend {
 		if kind == "cpu" {
 			args = []string{"--version"}
 		}
-		output, err := probeRuntime(root, path, args...)
+		output, err := probeRuntime(root, b, args...)
 		if err != nil {
 			b.Reason = fmt.Sprintf("%s runtime cannot start (%v). Requires %s; check drivers, libraries and executable storage. %s", kind, err, pack.Minimum, strings.TrimSpace(output))
 			return b

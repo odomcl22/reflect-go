@@ -15,8 +15,8 @@ spec.loader.exec_module(module)
 class PreviewBuildTests(unittest.TestCase):
     def test_preview_identity_is_deterministic_and_distinct_from_preserved_phases(self):
         current = module.preview_bundle_identifier()
-        self.assertEqual(current, 'local.reflectgo.workstation.preview.v0-4-9')
-        self.assertEqual(current, module.preview_bundle_identifier('0.4.9'))
+        self.assertEqual(current, 'local.reflectgo.workstation.preview.v0-4-10')
+        self.assertNotEqual(current, module.preview_bundle_identifier('0.4.9'))
         self.assertNotEqual(current, 'local.reflectgo.workstation')
         self.assertNotEqual(current, module.preview_bundle_identifier('0.4.6'))
         with self.assertRaises(ValueError):
@@ -36,8 +36,8 @@ class PreviewBuildTests(unittest.TestCase):
         metadata = module.preview_info(source)
         self.assertEqual(plistlib.dumps(source), before)
         self.assertEqual(metadata['CFBundleIdentifier'], module.preview_bundle_identifier())
-        self.assertEqual(metadata['CFBundleShortVersionString'], '0.4.9')
-        self.assertEqual(metadata['CFBundleVersion'], '49')
+        self.assertEqual(metadata['CFBundleShortVersionString'], '0.4.10')
+        self.assertEqual(metadata['CFBundleVersion'], '50')
         for key in ('CFBundleExecutable', 'CFBundleName', 'LSMinimumSystemVersion', 'NSHighResolutionCapable'):
             self.assertEqual(metadata[key], source[key])
         self.assertIn('portable software', metadata['NSDocumentsFolderUsageDescription'])
@@ -52,7 +52,7 @@ class PreviewBuildTests(unittest.TestCase):
 
     def test_refresh_rejects_running_native_app_before_mutating_package(self):
         with tempfile.TemporaryDirectory() as tmp:
-            source, destination = Path(tmp)/'Phase 4.6', Path(tmp)/'Phase 4.9'
+            source, destination = Path(tmp)/'Phase 4.6', Path(tmp)/module.PREVIEW_FOLDER
             source.mkdir(); destination.mkdir()
             (source/'manifest.json').write_text('{}')
             marker = destination/'unchanged.txt'; marker.write_bytes(b'existing preview')
@@ -73,7 +73,7 @@ class PreviewBuildTests(unittest.TestCase):
 
     def test_refresh_cannot_target_a_preserved_phase_through_python_api(self):
         with patch.object(module.subprocess, 'run') as run:
-            with self.assertRaisesRegex(SystemExit, 'restricted to Phase 4.9'):
+            with self.assertRaisesRegex(SystemExit, 'restricted to Phase 4.10'):
                 module.assemble(Path('/source'), Path('/preview/Phase 4.6'), refresh=True)
             run.assert_not_called()
 

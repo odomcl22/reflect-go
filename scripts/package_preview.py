@@ -47,7 +47,7 @@ def selected(rel, platform):
     if rel.endswith('.sh'):return platform!='windows'
     return True
 
-def package(bundle,output,starter=None,platform=None):
+def package(bundle,output,starter=None,platform=None,version='0.4.10'):
     if output.exists():raise SystemExit('Output exists; choose a new archive path.')
     catalog=json.loads((ROOT/'Sources/ReflectGo/model-catalog.json').read_text())
     model=next(m for m in catalog if m['id']=='starter')
@@ -103,12 +103,13 @@ def package(bundle,output,starter=None,platform=None):
     }
     # Documentation is assembled from authoritative sources, just like embedded
     # UI assets. It may be finalized after code signing without changing code.
+    doc_stem='PREVIEW_'+version.replace('.','_')
     for name,source in {
-        'README.md':'PREVIEW_0_4_9.md', 'VALIDATION.md':'PREVIEW_0_4_9_VALIDATION.md',
+        'README.md':doc_stem+'.md', 'VALIDATION.md':doc_stem+'_VALIDATION.md',
         'ROADMAP.md':'ROADMAP.md', 'HARNESS_COMPATIBILITY.md':'HARNESS_COMPATIBILITY.md',
         'PORTABLE_CLIS.md':'PORTABLE_CLIS.md', 'LM_STUDIO_SELECTOR_REVIEW.md':'LM_STUDIO_SELECTOR_REVIEW.md',
     }.items():
-        data=(ROOT/'docs'/source).read_text().replace('(PREVIEW_0_4_9_VALIDATION.md)','(VALIDATION.md)').encode()
+        data=(ROOT/'docs'/source).read_text().replace('('+doc_stem+'_VALIDATION.md)','(VALIDATION.md)').encode()
         if name in members:
             replacements[name]=data;clean[name]=hashlib.sha256(data).hexdigest()
         else:additions[name]=data
@@ -116,7 +117,7 @@ def package(bundle,output,starter=None,platform=None):
     if starter:clean['models/'+model['filename']]=model['sha256']
     signing=json.loads(members['SIGNING.json'].read_text()) if 'SIGNING.json' in members else {}
     signature=('Mac binaries are Developer ID signed and notarized.\n' if platform=='macos' and signing.get('notarization_status')=='Accepted' else 'Preview binaries do not carry trusted publisher verification; see release notes.\n')
-    readme=('Reflect Go 0.4.9 preview. Extract the entire ZIP before opening.\n'
+    readme=(f'Reflect Go {version} preview. Extract the entire ZIP before opening.\n'
             'Mac: Reflect Go.app. Windows: Reflect Go.exe. Linux: Reflect Go.desktop.\n'
             'Keep the launcher beside Reflect Go Files. Models, clients and settings stay inside that folder.\n'
             'Linux fallback: sh "Reflect Go Files/Reflect Go.sh". Your desktop may require Allow Launching.\n'
@@ -148,6 +149,7 @@ def package(bundle,output,starter=None,platform=None):
 
 if __name__=='__main__':
     p=argparse.ArgumentParser(description=__doc__)
-    p.add_argument('--bundle',type=Path,default=ROOT/'dist/Reflect Go/Phase 4.9');p.add_argument('--output',type=Path,required=True)
+    p.add_argument('--bundle',type=Path,default=ROOT/'dist/Reflect Go/Phase 4.10');p.add_argument('--output',type=Path,required=True)
     p.add_argument('--starter',type=Path);p.add_argument('--platform',choices=('macos','windows','linux'))
-    a=p.parse_args();package(a.bundle.resolve(),a.output.resolve(),a.starter.resolve()if a.starter else None,a.platform)
+    p.add_argument('--version',choices=('0.4.9','0.4.10'),default='0.4.10')
+    a=p.parse_args();package(a.bundle.resolve(),a.output.resolve(),a.starter.resolve()if a.starter else None,a.platform,a.version)

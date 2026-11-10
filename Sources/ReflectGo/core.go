@@ -16,7 +16,7 @@ import (
 	"strings"
 )
 
-const version = "0.4.9-preview"
+const version = "0.4.10-preview"
 const GiB = uint64(1 << 30)
 const runtimeUBatch = 128
 
