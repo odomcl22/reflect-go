@@ -216,7 +216,7 @@ func launch(root string, s Settings, o Options, inv Inventory) error {
 	if threads == 0 {
 		threads = max(1, inv.Hardware.CPUThreads-2)
 	}
-	args := []string{"--model", m.Path, "--offline", "--jinja", "--ctx-size", strconv.Itoa(context), "--threads", strconv.Itoa(threads), "--parallel", "1", "--batch-size", "256", "--ubatch-size", "128", "--fit", "off", "--temp", strconv.FormatFloat(temp, 'f', -1, 64), "--seed", "42"}
+	args := []string{"--model", m.Path, "--offline", "--jinja", "--ctx-size", strconv.Itoa(context), "--threads", strconv.Itoa(threads), "--parallel", "1", "--batch-size", "256", "--ubatch-size", strconv.Itoa(runtimeUBatch), "--fit", "off", "--temp", strconv.FormatFloat(temp, 'f', -1, 64), "--seed", "42"}
 	if context > 32768 {
 		args = append(args, "--cache-type-k", "q4_0", "--cache-type-v", "q4_0", "--flash-attn", "on")
 	}

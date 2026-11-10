@@ -19,7 +19,12 @@ import WebKit
     private var choosingProject = false
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        let root = Bundle.main.bundleURL.deletingLastPathComponent()
+        let besideApp = Bundle.main.bundleURL.deletingLastPathComponent()
+        let support = besideApp.appendingPathComponent("Reflect Go Files", isDirectory: true)
+        // Public downloads keep one app icon beside one support folder. Older
+        // preserved phase folders retain their original flat layout.
+        var directory: ObjCBool = false
+        let root = FileManager.default.fileExists(atPath: support.path, isDirectory: &directory) && directory.boolValue ? support : besideApp
         #if arch(arm64)
         let platform = "macos-arm64"
         #else
@@ -73,7 +78,7 @@ import WebKit
         }
         child.standardError = FileHandle.nullDevice
         process = child; owner = pipe
-        do { try child.run() } catch { fail("Could not open the portable workstation. Keep the app beside its bin and runtime folders.\n\(error.localizedDescription)"); return }
+        do { try child.run() } catch { fail("Could not open the portable workstation. Keep the app beside Reflect Go Files and extract the complete download.\n\(error.localizedDescription)"); return }
         started = Date()
         timer = Timer.scheduledTimer(withTimeInterval: 0.25, repeats: true) { [weak self] _ in
             Task { @MainActor in self?.check() }

@@ -5,6 +5,7 @@ const clientNames = {codex: 'Codex CLI', claude: 'Claude CLI', opencode: 'OpenCo
 let token = location.hash.slice(1) || sessionStorage.getItem(storeKey) || '';
 if (token) { sessionStorage.setItem(storeKey, token); history.replaceState(null, '', location.pathname); }
 let inv = null, engine = null, selected = '', enabled = null, loading = false, initialized = false, closed = false;
+let clientSetup = null, lastClientSetupStage = "";
 let lastReport = null, catalog = [], download = null, providerSignature = '', chatController = null, chatReader = null, chatStopping = false, messages = [];
 let launchPrefs = {project: '', clients: {}}, prefsLoaded = false, clientPacks = {}, launching = '', serviceStarting = false;
 let prefsSave = Promise.resolve(), runSave = Promise.resolve(), integrations = [], integrationsLoading = false;
@@ -53,7 +54,7 @@ function updateClientCards() {
     const chosen = models.find(m => m.id === pref.defaultModel) || (!pref.defaultModel && models.find(m => m.name === selected));
     $(client + '-models').textContent = models.length ? models.length + ' model' + (models.length === 1 ? '' : 's') + ' · ' + (chosen ? friendlyName(chosen) : pref.defaultModel ? 'Default unavailable' : 'Automatic') : 'No models selected';
     $(client + '-models').title = chosen ? 'Starting model: ' + friendlyName(chosen) : $(client + '-models').textContent;
-    $(client + '-availability').textContent = 'Client pack not on this drive';
+    $(client + '-availability').textContent = client === 'claude' ? 'One-time download directly from Anthropic' : 'Client pack not on this drive';
     $(client + '-availability').hidden = !!clientPacks[client];
   }
 }
@@ -174,8 +175,8 @@ function controls() {
   $('chat-send').disabled = !engine?.ready || !!chatController || chatStopping || !$('chat-model').value;
   $('chat-model').disabled = !!chatController; $('new-chat').disabled = !!chatController;
   for (const client of Object.keys(clientNames)) {
-    $(client).disabled = !initialized || !prefsLoaded || !inv || loading || pending || !clientPacks[client] || !!engine?.stopping;
-    $(client).textContent = launching === client ? 'Opening…' : 'Open';
+    $(client).disabled = !initialized || !prefsLoaded || !inv || loading || pending || (!clientPacks[client] && client !== 'claude') || (client === 'claude' && !!clientSetup?.active) || !!engine?.stopping;
+    $(client).textContent = client === 'claude' && !clientPacks.claude ? (clientSetup?.active ? 'Downloading…' : 'Get Claude Code') : launching === client ? 'Opening…' : 'Open';
   }
 }
 async function refresh() {
@@ -209,7 +210,7 @@ async function poll() {
     if (!settingsRestored) { setSettings(engine.savedSettings || engine.settings); settingsRestored = true; }
     $('metal').disabled = !data.platform.startsWith('macos'); $('vulkan').disabled = data.platform.startsWith('macos');
     if (wasLocked !== !!(engine.active || engine.preparing)) renderModels();
-    download = data.download; clientPacks = data.clients; $('connection').hidden = true;
+    download = data.download; clientPacks = data.clients; clientSetup = data.clientSetup; renderClientSetup(); $('connection').hidden = true;
     const g = data.gateway || {};
     $('status').textContent = engine.ready ? 'Local service running' : engine.active || engine.preparing ? engine.status : 'Ready when you are';
     $('detail').textContent = engine.ready ? 'Models load when an app requests them.' : engine.active || engine.preparing ? 'Starting the local service. Keep the drive connected.' : 'The local service starts when you open an app.';
@@ -321,9 +322,47 @@ async function launchIntegration(app, action) {
   finally { launching = ''; controls(); renderModels(); }
 }
 $('refresh-integrations').onclick = loadIntegrations;
-function renderCatalog(){const container=$('catalog');container.replaceChildren();let visible=0;for(const m of catalog){const installed=inv?.models.some(i=>i.name===m.filename);const estimate=m.size*1.3+1073741824+2048*524288;const fit=inv&&estimate<=inv.hardware.screeningBudgetBytes;if($('catalog-purpose').value!=='all'&&$('catalog-purpose').value!==m.purpose)continue;if($('catalog-installed').value==='installed'&&!installed||$('catalog-installed').value==='download'&&installed)continue;if($('catalog-fit').checked&&!fit)continue;if(m.size>Number($('catalog-size').value)*1073741824)continue;visible++;const row=document.createElement('div');row.className='model-row';const title=document.createElement('h3');title.textContent=m.name+' · '+m.quantization;const description=document.createElement('p');description.textContent=gib(m.size)+' download · '+m.license+' · '+m.note;const screen=document.createElement('p');screen.textContent='Conservative estimate at 2,048 context: '+gib(estimate)+(fit?' — within budget':' — above budget or hardware not yet detected');const source=document.createElement('a');source.textContent='Model source and license';source.href=m.source;source.target='_blank';source.rel='noopener noreferrer';const button=document.createElement('button');button.textContent=installed?'Installed':'Download / resume';button.disabled=installed||!!download?.active;button.onclick=async()=>{clearError();try{download=await api('download',{id:m.id});renderCatalog();renderDownload();}catch(e){error(e)}};row.append(title,description,screen,source,button);container.append(row);}$('filter-summary').textContent=visible+' of '+catalog.length+' catalog models shown. Clear filters to see excluded choices.';}
+function renderCatalog() {
+  const container = $('catalog'); container.replaceChildren();
+  const models = ReflectGoCatalog.filter(catalog, {
+    query: $('catalog-search').value, developer: $('catalog-developer').value,
+    purpose: $('catalog-purpose').value, status: $('catalog-installed').value,
+    maxBytes: Number($('catalog-size').value) * 1073741824, fitOnly: $('catalog-fit').checked,
+    budget: inv?.hardware.screeningBudgetBytes || 0, installed: inv?.models.map(m => m.name) || []
+  });
+  for (const model of models) {
+    const installed = inv?.models.some(m => m.name === model.filename);
+    const estimate = ReflectGoCatalog.estimate(model);
+    const fit = inv && estimate <= inv.hardware.screeningBudgetBytes;
+    const row = document.createElement('article'); row.className = 'model-row catalog-model';
+    const header = document.createElement('div'); header.className = 'catalog-model-header';
+    const name = document.createElement('div');
+    const title = document.createElement('h3'); title.textContent = model.name;
+    const developer = document.createElement('p'); developer.className = 'fine'; developer.textContent = model.developer || 'See model source';
+    name.append(title, developer);
+    const button = document.createElement('button'); button.textContent = installed ? 'On this drive' : 'Download';
+    button.disabled = installed || !!download?.active;
+    button.onclick = async () => { clearError(); try { download = await api('download', {id: model.id}); renderCatalog(); renderDownload(); } catch(e) { error(e); } };
+    header.append(name, button);
+    const size = document.createElement('p'); size.className = 'catalog-model-meta';
+    size.textContent = gib(model.size) + ' download · ' + model.quantization + ' · GGUF';
+    const memory = document.createElement('p'); memory.className = 'catalog-fit-note';
+    memory.textContent = 'Estimated memory: ' + gib(estimate) + ' at 2K context · ' + (fit ? 'Within estimate' : inv ? 'Above this computer’s budget' : 'Detecting hardware');
+    const note = document.createElement('p'); note.textContent = model.note;
+    const source = document.createElement('a'); source.textContent = 'Source and license · ' + model.license; source.href = model.source; source.target = '_blank'; source.rel = 'noopener noreferrer';
+    row.append(header, size, memory, note, source); container.append(row);
+  }
+  $('filter-summary').textContent = models.length + ' of ' + catalog.length + ' catalog models' + (models.length ? ' · smallest downloads first' : ' · clear filters to see more choices');
+}
 let lastDownloadStage='';
-function renderDownload(){if(!download?.id)return;$('download-status').textContent=download.stage+' · '+gib(download.received)+' / '+gib(download.total)+(download.error?' — '+download.error:'');$('download-progress').hidden=!download.active;$('download-progress').max=download.total||1;$('download-progress').value=download.received;$('cancel-download').hidden=!download.active;if(download.stage!==lastDownloadStage){const previous=lastDownloadStage;lastDownloadStage=download.stage;renderCatalog();if(download.stage==='complete'&&previous)refresh();}}
+function renderClientSetup() {
+ if (!clientSetup?.id) return;
+ if (clientSetup.active) $('client-result').textContent = 'Getting portable Claude Code · '+clientSetup.stage+(clientSetup.total ? ' · '+gib(clientSetup.received)+' / '+gib(clientSetup.total) : '');
+ else if (lastClientSetupStage !== clientSetup.stage) $('client-result').textContent = clientSetup.error || 'Claude Code is ready on this drive. Click Open to start.';
+ lastClientSetupStage = clientSetup.stage;
+}
+function renderDownload(){if(!download?.id)return;const count=download.totalModels>1?' · '+download.completed+'/'+download.totalModels+' models verified':'';$('download-status').textContent=(catalog.find(m=>m.id===download.id)?.name||download.id)+' · '+download.stage+' · '+gib(download.received)+' / '+gib(download.total)+count+(download.error?' — '+download.error:'');$('download-progress').hidden=!download.active;$('download-progress').max=download.total||1;$('download-progress').value=download.received;$('cancel-download').hidden=!download.active;$('download-pair').disabled=!!download.active; if(download.stage!==lastDownloadStage){const previous=lastDownloadStage;lastDownloadStage=download.stage;renderCatalog();if(download.stage==='complete'&&previous)refresh();}}
+$('download-pair').onclick=async()=>{clearError();try{download=await api('download',{ids:['gemma4-31b-qat-q4-0','muse-glimmer-30b-q4-k-m']});renderDownload();renderCatalog();}catch(e){error(e)}};
 $('refresh').onclick = () => { clearError(); refresh(); };
 for (const key of ['context', 'backend']) $(key).onchange = async () => { await refresh(); saveRunSettings().catch(() => {}); };
 for (const key of ['temperature', 'threads', 'port']) $(key).onchange = () => { saveRunSettings().catch(() => {}); };
@@ -334,19 +373,32 @@ $('recommend').onclick = async () => {
     if (r.model) { selected = r.model; $('context').value = r.context; $('backend').value = r.backend; await refresh(); await saveRunSettings(); }
   } catch (e) { error(e); }
 };
-async function startService() {
+async function startService(purpose) {
   if (serviceStarting || launching) return;
   clearError(); serviceStarting = true; controls();
   try {
+    if (purpose === 'chat' && enabled === null && !sharedModels().length) {
+      const recommendation = await api('recommend?purpose=chat');
+      if (!recommendation.model) throw Error(recommendation.reason);
+      selected = recommendation.model; $('context').value = recommendation.context; $('backend').value = recommendation.backend;
+      if (!await refresh()) throw Error('Could not refresh models for chat.');
+      await saveRunSettings();
+      $('chat-timing').textContent = 'Chat settings adapted to this computer.';
+    }
     if (!sharedModels().length) throw Error('Choose a suitable model in Models → Your models, or add one in Models → Add models.');
     await runSave.catch(() => {}); await api('start', settings()); await syncEngineSettings(); renderModels();
   } catch (e) { error(e); } finally { serviceStarting = false; controls(); }
 }
-$('start').onclick = startService; $('chat-start').onclick = startService;
+$('start').onclick = () => startService(); $('chat-start').onclick = () => startService('chat');
 $('stop').onclick = async () => { if (!confirm('Stop the local service and unload its model? Finish or cancel client tasks first.')) return; chatController?.abort(); try { await api('stop', {}); } catch (e) { error(e); } };
 $('test').onclick = async () => { clearError(); $('test').disabled = true; $('response').hidden = false; $('response').textContent = 'Loading if needed, then generating…'; try { const value = await api('test', {}); $('response').textContent = value.response; } catch (e) { $('response').textContent = ''; error(e); } finally { controls(); } };
 for (const client of Object.keys(clientNames)) $(client).onclick = async () => {
   if (launching || serviceStarting) return;
+  if (client === 'claude' && !clientPacks.claude) {
+    if (!confirm('Download Claude Code directly from Anthropic into this Reflect Go folder? Internet is needed once. No host installation. Anthropic’s terms apply.')) return;
+    try { clientSetup = await api('client-setup', {client:'claude'}); renderClientSetup(); controls(); } catch(e) { error(e); }
+    return;
+  }
   clearError(); launching = client; controls(); renderModels();
   $('client-result').textContent = engine?.ready ? 'Opening ' + clientNames[client] + ' with your saved models…' : 'Starting your local service, then opening ' + clientNames[client] + '…';
   try {
@@ -387,7 +439,9 @@ if (folderPicker) { $('browse-project').hidden = false; $('project-help').textCo
 $('browse-project').onclick = () => { if (!launching && !serviceStarting) folderPicker?.postMessage({}); };
 window.reflectGoProjectSelected = path => { if (typeof path === 'string' && !launching) { $('project').value = path; projectChanged(); } };
 $('cancel-download').onclick=async()=>{try{download=await api('download/cancel',{});}catch(e){error(e)}};
-for(const id of ['catalog-purpose','catalog-installed','catalog-fit','catalog-size'])$(id).onchange=renderCatalog;
+for(const id of ['catalog-developer','catalog-purpose','catalog-installed','catalog-fit','catalog-size'])$(id).onchange=renderCatalog;
+$('catalog-search').oninput = renderCatalog;
+$('catalog-clear').onclick = () => { $('catalog-search').value = ''; $('catalog-developer').value = ''; $('catalog-purpose').value = 'all'; $('catalog-installed').value = 'all'; $('catalog-fit').checked = false; $('catalog-size').value = '100'; renderCatalog(); };
 $('import-model').onclick=async()=>{const file=$('import-file').files[0];if(!file){error(Error('Choose a GGUF file first.'));return;}$('import-model').disabled=true;$('import-status').textContent='Copying and checking the model…';try{const r=await fetch('/api/import?name='+encodeURIComponent(file.name),{method:'POST',headers:{Authorization:'Bearer '+token},body:file});if(!r.ok)throw Error(await r.text());$('import-status').textContent='Imported. Restart the engine and reopen clients to refresh available models.';await refresh();}catch(e){$('import-status').textContent='Import did not finish.';error(e)}finally{$('import-model').disabled=false}};
 function message(role,text){const entry=document.createElement('div');entry.className='chat-message '+role;const label=document.createElement('strong');label.textContent=role==='user'?'You':'Local model';const body=document.createElement('p');body.textContent=text;entry.append(label,body);$('messages').append(entry);return body;}
 $('chat-model').onchange=()=>{$('chat-timing').textContent='The next response uses this model; conversation history is retained.';controls()};

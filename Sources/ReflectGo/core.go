@@ -16,8 +16,9 @@ import (
 	"strings"
 )
 
-const version = "0.4.8-preview"
+const version = "0.4.9-preview"
 const GiB = uint64(1 << 30)
+const runtimeUBatch = 128
 
 type Settings struct {
 	Context         int     `json:"context"`
@@ -307,10 +308,18 @@ func inspectModel(path, dir string, context int, budget uint64) Model {
 		}
 		return nil
 	}()
+	kvBytes := uint64(context) * kv
+	if metadata.SlidingWindow > 0 {
+		// Pinned llama-kv-cache-iswa.cpp: one slot, ubatch 128, SWA
+		// min(base cells, window + ubatch), padded to 256 cells.
+		baseCells := (uint64(context) + 255) / 256 * 256
+		swaCells := (min(baseCells, metadata.SlidingWindow+runtimeUBatch) + 255) / 256 * 256
+		kvBytes = baseCells*metadata.FullKV + swaCells*metadata.SlidingKV
+	}
 	if context > 32768 && metadata.CompactKV {
-		kv = (kv*9 + 31) / 32
+		kvBytes = (kvBytes*9 + 31) / 32
 	} // Q4_0: 18 bytes per block of 32, versus FP16.
-	estimate := float64(m.Bytes)*1.3 + float64(GiB) + float64(context)*float64(kv)
+	estimate := float64(m.Bytes)*1.3 + float64(GiB) + float64(kvBytes)
 	if estimate >= float64(math.MaxInt64) {
 		m.EstimatedBytes = math.MaxInt64
 	} else {
@@ -323,9 +332,21 @@ func inspectModel(path, dir string, context int, budget uint64) Model {
 	return m
 }
 
+// Larger unified-memory Macs can reserve a quarter of physical RAM for the OS.
+// This is a screening ceiling, not a measurement of currently free memory.
+func macMemoryBudget(ram uint64) uint64 {
+	if ram >= 32*GiB {
+		return ram / 4 * 3
+	}
+	return ram / 2
+}
+
 type modelMemoryInfo struct {
-	Context   uint64
-	CompactKV bool
+	Context       uint64
+	CompactKV     bool
+	FullKV        uint64
+	SlidingKV     uint64
+	SlidingWindow uint64
 }
 
 func estimateKV(r io.Reader, count uint64, metadata ...*modelMemoryInfo) uint64 {
@@ -335,6 +356,7 @@ func estimateKV(r io.Reader, count uint64, metadata ...*modelMemoryInfo) uint64 
 	}
 	rd := &io.LimitedReader{R: r, N: 32 << 20}
 	numbers := map[string]uint64{}
+	arrays := map[string][]uint64{}
 	arch := ""
 	uintN := func(n int) (uint64, error) {
 		var b [8]byte
@@ -392,6 +414,23 @@ func estimateKV(r io.Reader, count uint64, metadata ...*modelMemoryInfo) uint64 
 			if err != nil {
 				return fallback
 			}
+		} else if t == 9 && (strings.HasSuffix(key, ".attention.head_count_kv") || strings.HasSuffix(key, ".attention.sliding_window_pattern")) {
+			sub, e := uintN(4)
+			if e != nil || (sub != 4 && sub != 5 && sub != 7 && sub != 10 && sub != 11) {
+				return fallback
+			}
+			length, e := uintN(8)
+			if e != nil || length == 0 || length > 256 {
+				return fallback
+			}
+			values := make([]uint64, length)
+			for j := range values {
+				values[j], e = value(sub, 1)
+				if e != nil {
+					return fallback
+				}
+			}
+			arrays[key] = values
 		} else {
 			n, err := value(t, 0)
 			if err != nil {
@@ -404,6 +443,17 @@ func estimateKV(r io.Reader, count uint64, metadata ...*modelMemoryInfo) uint64 
 	}
 	if len(metadata) > 0 {
 		metadata[0].Context = numbers[arch+".context_length"]
+	}
+	if arch == "gemma4" || arch == "muse-glimmer" {
+		var info modelMemoryInfo
+		if !slidingAttentionProfile(arch, numbers, arrays, &info) {
+			return fallback
+		}
+		if len(metadata) > 0 {
+			info.Context = metadata[0].Context
+			*metadata[0] = info
+		}
+		return info.FullKV + info.SlidingKV
 	}
 	if arch != "qwen2" && arch != "qwen3" && arch != "llama" && arch != "mistral" {
 		return fallback
@@ -431,6 +481,65 @@ func estimateKV(r io.Reader, count uint64, metadata ...*modelMemoryInfo) uint64 
 		metadata[0].CompactKV = uint64(k)%32 == 0 && uint64(v)%32 == 0
 	}
 	return uint64(math.Max(65536, estimate))
+}
+
+func slidingAttentionProfile(arch string, numbers map[string]uint64, arrays map[string][]uint64, info *modelMemoryInfo) bool {
+	n := func(key string) uint64 { return numbers[arch+"."+key] }
+	layers, heads, window := n("block_count"), n("attention.head_count"), n("attention.sliding_window")
+	pattern := arrays[arch+".attention.sliding_window_pattern"]
+	kvHeads := arrays[arch+".attention.head_count_kv"]
+	if layers == 0 || layers > 256 || heads == 0 || heads > 1024 || window == 0 || window > 1<<20 || len(pattern) != int(layers) {
+		return false
+	}
+	if len(kvHeads) != 0 && len(kvHeads) != int(layers) {
+		return false
+	}
+	k, v := n("attention.key_length"), n("attention.value_length")
+	sk, sv := n("attention.key_length_swa"), n("attention.value_length_swa")
+	if sk == 0 {
+		sk = k
+	}
+	if sv == 0 {
+		sv = v
+	}
+	for _, dim := range []uint64{k, v, sk, sv} {
+		if dim == 0 || dim > 8192 {
+			return false
+		}
+	}
+	var full, sliding uint64
+	var widestV uint64
+	counts := make([]uint64, len(pattern))
+	for i := range pattern {
+		count := n("attention.head_count_kv")
+		if len(kvHeads) > 0 {
+			count = kvHeads[i]
+		}
+		if count == 0 || count > heads || heads%count != 0 || pattern[i] > 1 {
+			return false
+		}
+		counts[i] = count
+		width := count * v
+		if pattern[i] == 1 {
+			width = count * sv
+		}
+		widestV = max(widestV, width)
+	}
+	// llama-kv-cache.cpp pads transposed V rows to the widest layer. Use
+	// that upper bound even when Flash Attention can avoid the padding.
+	for i, count := range counts {
+		if pattern[i] == 1 {
+			sliding += (count*sk + widestV) * 3
+		} else {
+			full += (count*k + widestV) * 3
+		}
+	}
+	if full == 0 || sliding == 0 || full+sliding > 16<<20 {
+		return false
+	}
+	info.FullKV, info.SlidingKV, info.SlidingWindow = full, sliding, window
+	info.CompactKV = k%32 == 0 && v%32 == 0 && sk%32 == 0 && sv%32 == 0
+	return true
 }
 func hashFile(path string) (string, error) {
 	f, err := os.Open(path)

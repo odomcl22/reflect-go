@@ -44,3 +44,7 @@ Desktop.ini
 node_modules/
 .venv/
 *.syso
+
+# Experimental harness work is excluded from the public inference-engine release.
+/extensions/reflect-go-harness/
+/docs/research/reflect-go-harness/

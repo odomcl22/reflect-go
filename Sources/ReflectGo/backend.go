@@ -219,6 +219,19 @@ func backendForModel(root string, b Backend, m Model, requested string, cpu bool
 	if !b.Available {
 		return b, fmt.Errorf("%s", b.Reason)
 	}
+	// This exact catalog build returned repeated '@' tokens on M1 Metal, while
+	// CPU answered the same prompt correctly. Do not serve known invalid output.
+	if b.Kind == "metal" && m.Name == "granite-4.0-1b-Q4_K_M.gguf" {
+		if requested == "metal" && !cpu {
+			return b, fmt.Errorf("IBM Granite 4.0 1B requires CPU with this preview's runtime; select Automatic or CPU")
+		}
+		fallback := chooseBackend(root, "cpu", true)
+		fallback.Reason = "CPU compatibility profile: IBM Granite 4.0 1B produced invalid output on the bundled Metal runtime"
+		if !fallback.Available {
+			return fallback, fmt.Errorf("this model requires CPU, but the CPU runtime is unavailable")
+		}
+		return fallback, nil
+	}
 	if b.Kind == "vulkan" || b.Kind == "metal" {
 		budget := b.MemoryBytes * 8 / 10
 		if free := b.FreeBytes * 9 / 10; free < budget {

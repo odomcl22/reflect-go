@@ -71,6 +71,8 @@ func recommend(inv Inventory, purpose string) Recommendation {
 	}
 	if purpose == "coding" {
 		r.Reason = "No installed coding candidate passes the memory screen at 8,192 context. Use Chat or a smaller coding model; a tiny chat demonstration is not coding qualification."
+	} else if len(models) > 0 {
+		r.Reason = "No installed model passes this computer's memory screen for chat. Download a smaller model or use a computer with more available memory."
 	}
 	return r
 }

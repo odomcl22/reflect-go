@@ -1,0 +1,41 @@
+{
+  "version": "2.1.289",
+  "packs": {
+    "macos-arm64": {
+      "url": "https://registry.npmjs.org/@anthropic-ai/claude-code-darwin-arm64/-/claude-code-darwin-arm64-2.1.289.tgz",
+      "integrity": "sha512-jhZQ4BdBt2E9oiHdgpwu/HIgRDlyUazDfXIbIerUFDAPcb6c7Tl1QtMvLz3KxXkZXigYv0q4U6xSHHd78TQdHA==",
+      "license": "Proprietary; personal copy; excluded from public archive",
+      "unpacked_bytes": 229617041
+    },
+    "macos-x64": {
+      "url": "https://registry.npmjs.org/@anthropic-ai/claude-code-darwin-x64/-/claude-code-darwin-x64-2.1.289.tgz",
+      "integrity": "sha512-KErKulmExUbnAqXDz75FGfph+fslAHL0UqIW9rYlGwNFlPJAP5UTXIKcKp6Jh1bgVQjdJJEqg79kUjuriVUDDw==",
+      "license": "Proprietary; personal copy; excluded from public archive",
+      "unpacked_bytes": 238082745
+    },
+    "windows-x64": {
+      "url": "https://registry.npmjs.org/@anthropic-ai/claude-code-win32-x64/-/claude-code-win32-x64-2.1.289.tgz",
+      "integrity": "sha512-t6PwcRoMIeuNPbnkf9bFxdUv3xBgUSnk1yRU3r8b5CjovwzV1zUY/talE4rgGAvcTwmndirtWOny/3LPf6Ju+w==",
+      "license": "Proprietary; personal copy; excluded from public archive",
+      "unpacked_bytes": 249523418
+    },
+    "windows-arm64": {
+      "url": "https://registry.npmjs.org/@anthropic-ai/claude-code-win32-arm64/-/claude-code-win32-arm64-2.1.289.tgz",
+      "integrity": "sha512-dMKH0j/Zm2q5L71rVXx4NaWWlK5iUOCmN12XgwrIx7EjYhvpgVDLdNHm9yohxb3I0Cb4iaujR/EBb75FuLbIGQ==",
+      "license": "Proprietary; personal copy; excluded from public archive",
+      "unpacked_bytes": 237045986
+    },
+    "linux-x64": {
+      "url": "https://registry.npmjs.org/@anthropic-ai/claude-code-linux-x64/-/claude-code-linux-x64-2.1.289.tgz",
+      "integrity": "sha512-I23SaSYE8vSwFbJ+Tc0mRlzvJmRQNaiyBUXK/K5R6BVr2lOoCdMI2SJR4N6xiVYy6yyIt39JNiyvPHoiOymyyw==",
+      "license": "Proprietary; personal copy; excluded from public archive",
+      "unpacked_bytes": 246107906
+    },
+    "linux-arm64": {
+      "url": "https://registry.npmjs.org/@anthropic-ai/claude-code-linux-arm64/-/claude-code-linux-arm64-2.1.289.tgz",
+      "integrity": "sha512-kzZKgmlPjtxeCl3jR4eO+BVwy4hJq/pApB2vWFgrjAGR1jOphhS6GJaU1XjZYGbJITSoeaWxHnD1xQ2EWVZLHw==",
+      "license": "Proprietary; personal copy; excluded from public archive",
+      "unpacked_bytes": 245490250
+    }
+  }
+}

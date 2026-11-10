@@ -19,17 +19,19 @@ import (
 var catalogData []byte
 
 type CatalogModel struct {
-	ID           string `json:"id"`
-	Name         string `json:"name"`
-	Filename     string `json:"filename"`
-	URL          string `json:"url"`
-	SHA256       string `json:"sha256"`
-	Size         int64  `json:"size"`
-	License      string `json:"license"`
-	Source       string `json:"source"`
-	Quantization string `json:"quantization"`
-	Purpose      string `json:"purpose"`
-	Note         string `json:"note"`
+	ID                string `json:"id"`
+	Name              string `json:"name"`
+	Developer         string `json:"developer,omitempty"`
+	EstimatedMemory2K uint64 `json:"estimated_memory_2k,omitempty"`
+	Filename          string `json:"filename"`
+	URL               string `json:"url"`
+	SHA256            string `json:"sha256"`
+	Size              int64  `json:"size"`
+	License           string `json:"license"`
+	Source            string `json:"source"`
+	Quantization      string `json:"quantization"`
+	Purpose           string `json:"purpose"`
+	Note              string `json:"note"`
 }
 
 func modelCatalog() []CatalogModel {
@@ -39,24 +41,28 @@ func modelCatalog() []CatalogModel {
 }
 
 type DownloadStatus struct {
-	ID       string `json:"id"`
-	Stage    string `json:"stage"`
-	Received int64  `json:"received"`
-	Total    int64  `json:"total"`
-	Error    string `json:"error,omitempty"`
-	Active   bool   `json:"active"`
+	ID          string `json:"id"`
+	Stage       string `json:"stage"`
+	Received    int64  `json:"received"`
+	Total       int64  `json:"total"`
+	Error       string `json:"error,omitempty"`
+	Active      bool   `json:"active"`
+	Completed   int    `json:"completed"`
+	TotalModels int    `json:"totalModels"`
 }
 type DownloadManager struct {
-	mu     sync.Mutex
-	root   string
-	status DownloadStatus
-	cancel context.CancelFunc
-	done   chan struct{}
-	client *http.Client
+	mu      sync.Mutex
+	root    string
+	status  DownloadStatus
+	cancel  context.CancelFunc
+	done    chan struct{}
+	client  *http.Client
+	clients *ClientInstallManager
+	catalog []CatalogModel
 }
 
 func newDownloads(root string) *DownloadManager {
-	return &DownloadManager{root: root, client: &http.Client{Transport: &http.Transport{Proxy: http.ProxyFromEnvironment, ResponseHeaderTimeout: 30 * time.Second}, CheckRedirect: func(r *http.Request, via []*http.Request) error {
+	return &DownloadManager{root: root, catalog: modelCatalog(), clients: newClientInstall(root), client: &http.Client{Transport: &http.Transport{Proxy: http.ProxyFromEnvironment, ResponseHeaderTimeout: 30 * time.Second}, CheckRedirect: func(r *http.Request, via []*http.Request) error {
 		if len(via) > 8 || r.URL.Scheme != "https" {
 			return errors.New("download redirect must use HTTPS")
 		}
@@ -77,6 +83,9 @@ func (d *DownloadManager) stop() {
 }
 func (d *DownloadManager) close() {
 	d.stop()
+	if d.clients != nil {
+		d.clients.close()
+	}
 	d.mu.Lock()
 	done := d.done
 	d.mu.Unlock()
@@ -84,38 +93,132 @@ func (d *DownloadManager) close() {
 		<-done
 	}
 }
-func (d *DownloadManager) start(id string) error {
-	var model CatalogModel
-	for _, m := range modelCatalog() {
-		if m.ID == id {
-			model = m
-		}
+func (d *DownloadManager) start(id string) error { return d.startMany([]string{id}) }
+func (d *DownloadManager) startMany(ids []string) error {
+	if len(ids) == 0 || len(ids) > 8 {
+		return errors.New("choose between one and eight catalog models")
 	}
-	if model.ID == "" {
-		return errors.New("choose a model from the verified catalog")
+	catalog := map[string]CatalogModel{}
+	for _, m := range d.catalog {
+		catalog[m.ID] = m
+	}
+	models := []CatalogModel{}
+	seen := map[string]bool{}
+	for _, id := range ids {
+		m, ok := catalog[id]
+		if !ok || seen[id] {
+			return errors.New("choose unique models from the verified catalog")
+		}
+		seen[id] = true
+		models = append(models, m)
 	}
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	if d.status.Active {
-		return errors.New("finish or cancel the current download first")
+		return errors.New("finish or pause the current download first")
+	}
+	s, err := loadSettings(d.root)
+	if err != nil {
+		return err
+	}
+	dir, err := modelsDirectory(d.root, s)
+	if err != nil {
+		return err
+	}
+	if err = os.MkdirAll(dir, 0755); err != nil {
+		return err
+	}
+	var required uint64
+	for _, m := range models {
+		target, e := safePath(dir, m.Filename)
+		if e != nil {
+			return e
+		}
+		if info, e := os.Stat(target); e == nil {
+			if !info.Mode().IsRegular() || info.Size() != m.Size {
+				return errors.New("an existing model has an unexpected size; inspect it before downloading")
+			}
+			continue
+		} else if !os.IsNotExist(e) {
+			return e
+		}
+		part, e := safePath(dir, m.Filename+".partial")
+		if e != nil {
+			return e
+		}
+		var offset int64
+		if info, e := os.Stat(part); e == nil {
+			if !info.Mode().IsRegular() || info.Size() > m.Size {
+				return errors.New("invalid partial model")
+			}
+			offset = info.Size()
+		} else if !os.IsNotExist(e) {
+			return e
+		}
+		required += uint64(m.Size - offset)
+	}
+	if err = checkFreeSpace(dir, required+(256<<20)); err != nil {
+		return err
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	d.cancel = cancel
 	d.done = make(chan struct{})
 	done := d.done
-	d.status = DownloadStatus{ID: id, Stage: "starting", Total: model.Size, Active: true}
+	d.status = DownloadStatus{ID: models[0].ID, Stage: "starting", Total: models[0].Size, Active: true, TotalModels: len(models)}
 	go func() {
-		err := d.download(ctx, model)
+		var failure error
+		for _, m := range models {
+			if failure = ctx.Err(); failure != nil {
+				break
+			}
+			d.mu.Lock()
+			d.status.ID = m.ID
+			d.status.Stage = "checking"
+			d.status.Total = m.Size
+			d.status.Received = 0
+			d.mu.Unlock()
+			if failure = func() error {
+				settings, e := loadSettings(d.root)
+				if e != nil {
+					return e
+				}
+				folder, e := modelsDirectory(d.root, settings)
+				if e != nil {
+					return e
+				}
+				target, e := safePath(folder, m.Filename)
+				if e != nil {
+					return e
+				}
+				if _, e = os.Stat(target); e == nil {
+					sum, e := hashFileContext(ctx, target)
+					if e != nil {
+						return e
+					}
+					if sum != m.SHA256 {
+						return errors.New("existing model checksum differs; existing files are never overwritten")
+					}
+					return nil
+				}
+				return d.download(ctx, m)
+			}(); failure != nil {
+				break
+			}
+			d.mu.Lock()
+			d.status.Completed++
+			d.status.Received = m.Size
+			d.mu.Unlock()
+		}
 		d.mu.Lock()
 		defer d.mu.Unlock()
 		d.status.Active = false
 		d.cancel = nil
-		if err != nil {
+		if failure != nil {
 			d.status.Stage = "error"
-			d.status.Error = err.Error()
+			d.status.Error = failure.Error()
 			if ctx.Err() != nil {
 				d.status.Stage = "paused"
-				d.status.Error = "Download paused. Choose Download / resume to continue."
+				d.status.Error = "Download paused. Choose the same model or pair to resume."
 			}
 		} else {
 			d.status.Stage = "complete"

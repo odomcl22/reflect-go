@@ -27,13 +27,13 @@ func main() {
 	if ok == 0 && (os.Getenv("PROCESSOR_ARCHITEW6432") == "ARM64" || os.Getenv("PROCESSOR_ARCHITECTURE") == "ARM64") {
 		target = "windows-arm64"
 	}
-	cmd := exec.Command(filepath.Join(filepath.Dir(self), "bin", target, "reflectgo-window.exe"), "ui")
+	cmd := exec.Command(filepath.Join(launcherRoot(self), "bin", target, "reflectgo-window.exe"), "ui")
 	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
 	if err = cmd.Start(); err == nil {
 		_ = cmd.Process.Release()
 		return
 	}
-	text, _ := syscall.UTF16PtrFromString("Reflect Go could not start. Extract the complete ZIP first, then keep this launcher beside the bin, runtime and config folders.\n\n" + err.Error())
+	text, _ := syscall.UTF16PtrFromString("Reflect Go could not start. Extract the complete ZIP first, then keep this launcher beside Reflect Go Files.\n\n" + err.Error())
 	title, _ := syscall.UTF16PtrFromString("Reflect Go")
 	syscall.NewLazyDLL("user32.dll").NewProc("MessageBoxW").Call(0, uintptr(unsafe.Pointer(text)), uintptr(unsafe.Pointer(title)), 0x10)
 }

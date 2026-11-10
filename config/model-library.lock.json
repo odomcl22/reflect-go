@@ -1,8 +1,33 @@
 {
   "schema": 1,
-  "resolved_on": "2026-10-04",
-  "note": "Three compact models selected for 8, 12, 16 and 24 GiB hosts. Download status and physical-device qualification are recorded separately. Keep one copy in the shared Models directory, never in release archives. Earlier phase models are retained.",
+  "resolved_on": "2026-11-09",
+  "note": "Pinned compact and larger-model choices. Model files are shared across releases, never embedded in source archives. Existing machine profiles apply only to compact models; larger-model hardware and coding qualification are recorded separately.",
   "models": {
+    "muse-glimmer-30b-ud-q4-k-xl": {
+      "name": "Muse Glimmer 30B",
+      "quantization": "UD-Q4_K_XL",
+      "filename": "Muse-Glimmer-30B-UD-Q4_K_XL.gguf",
+      "repository": "unsloth/Muse-Glimmer-30B-GGUF",
+      "revision": "faa5b025c584459c13febfa5c59883516710ae39",
+      "size_bytes": 15878222368,
+      "sha256": "82bece304887a313ece08400bc030f6066c7bff5b906b0cd40308ec8a409fd38",
+      "url": "https://huggingface.co/unsloth/Muse-Glimmer-30B-GGUF/resolve/faa5b025c584459c13febfa5c59883516710ae39/Muse-Glimmer-30B-UD-Q4_K_XL.gguf",
+      "source": "https://huggingface.co/unsloth/Muse-Glimmer-30B-GGUF",
+      "license": "apache-2.0",
+      "runtime_requirements": {
+        "architecture": "muse-glimmer",
+        "minimum_llama_cpp_build": "b10353",
+        "jinja_required": true,
+        "modalities_in_this_download": [
+          "text"
+        ],
+        "note": "Requirements from the pinned model card. Image input needs a separate perception encoder; the optional DFlash drafter is also excluded from this download."
+      },
+      "qualification": {
+        "status": "not-tested",
+        "note": "Weights alone occupy 14.8 GiB; context and system memory are additional. Not qualified for the existing 8/12/16/24 GiB machine profiles or for harness tool use."
+      }
+    },
     "bonsai-8b-q1": {
       "name": "Bonsai 8B",
       "quantization": "Q1_0",
@@ -55,6 +80,56 @@
         "estimated_bytes": 8866733244,
         "first_passing_ram_tier_gib": 24,
         "note": "Reflect Go 0.4.5 conservative estimate using half of physical RAM as budget, not measured memory use or a fit guarantee. Bonsai uses published Qwen3 metadata; other architectures use the application fallback KV estimate. Longer context increases this estimate."
+      }
+    },
+    "gemma4-31b-qat-q4-0": {
+      "repository": "google/gemma-4-31B-it-qat-q4_0-gguf",
+      "filename": "gemma-4-31B_q4_0-it.gguf",
+      "revision": "59dde24573e7e61570dba08b18a2e1fe246955ed",
+      "size_bytes": 17651001568,
+      "sha256": "179cfb99212709597eae5929112cfca677e1bbf566178b479ae1da0c4772874b",
+      "license": "apache-2.0",
+      "source": "https://huggingface.co/google/gemma-4-31B-it-qat-q4_0-gguf",
+      "url": "https://huggingface.co/google/gemma-4-31B-it-qat-q4_0-gguf/resolve/59dde24573e7e61570dba08b18a2e1fe246955ed/gemma-4-31B_q4_0-it.gguf",
+      "name": "Gemma 4 31B Instruct",
+      "quantization": "QAT Q4_0",
+      "qualification": {
+        "status": "not-tested",
+        "target_ram_gib": 48,
+        "note": "Text model for larger-memory hosts. Intended for 48 GiB or more; additional context and system memory required. Reflect Go runtime, memory screening and harness tool use still need qualification."
+      }
+    },
+    "muse-glimmer-30b-q4-k-m": {
+      "repository": "meta-models/Muse-Glimmer-30B-GGUF",
+      "filename": "Muse-Glimmer-30B-KQuant-17GB-Q4_K_M.gguf",
+      "revision": "b44f1072cf75e918a1b82a3a17b45c4389b076e7",
+      "size_bytes": 16756683904,
+      "sha256": "4cc57c0f51040a226e5a72cc47b7613f7772950e460a665f7083de89f183f60e",
+      "license": "apache-2.0",
+      "source": "https://huggingface.co/meta-models/Muse-Glimmer-30B-GGUF",
+      "url": "https://huggingface.co/meta-models/Muse-Glimmer-30B-GGUF/resolve/b44f1072cf75e918a1b82a3a17b45c4389b076e7/Muse-Glimmer-30B-KQuant-17GB-Q4_K_M.gguf",
+      "name": "Muse Glimmer 30B",
+      "quantization": "Q4_K_M",
+      "qualification": {
+        "status": "not-tested",
+        "target_ram_gib": 48,
+        "note": "Text model for larger-memory hosts. Intended for 48 GiB or more; additional context and system memory required. Reflect Go runtime, memory screening and harness tool use still need qualification."
+      }
+    },
+    "granite4-1b-q4-k-m": {
+      "name": "IBM Granite 4.0 1B",
+      "filename": "granite-4.0-1b-Q4_K_M.gguf",
+      "repository": "ibm-granite/granite-4.0-1b-GGUF",
+      "revision": "b27c2fe3f211b7f44e80fa620177aea371099aaa",
+      "size_bytes": 1023645440,
+      "sha256": "22ec0f9cc99a90185312de3c882c84e7bd6789bdd050389844380a01a831d7f1",
+      "url": "https://huggingface.co/ibm-granite/granite-4.0-1b-GGUF/resolve/b27c2fe3f211b7f44e80fa620177aea371099aaa/granite-4.0-1b-Q4_K_M.gguf",
+      "source": "https://huggingface.co/ibm-granite/granite-4.0-1b-GGUF",
+      "license": "apache-2.0",
+      "quantization": "Q4_K_M",
+      "qualification": {
+        "status": "cpu-chat-smoke-passed",
+        "note": "Apple M1, 16 GiB, 2048 context: CPU answered Four. Metal returned repeated @ tokens; automatic Mac compute requires the CPU compatibility profile. Coding/tool use unqualified."
       }
     }
   },

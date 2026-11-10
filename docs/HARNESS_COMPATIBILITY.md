@@ -10,7 +10,7 @@ Ollama documents connection, restart, model selection, and restoration for [Clau
 
 ## Integration matrix
 
-The published 0.4.8 ZIPs have a desktop startup issue. The fixes and latest live results are documented in [follow-up desktop testing](PREVIEW_0_4_8_VALIDATION.md#follow-up-desktop-testing); source fixes are not yet in updated public downloads.
+The published 0.4.8 ZIPs have a desktop startup issue. The fixes and latest live results are documented in [follow-up desktop testing](PREVIEW_0_4_8_VALIDATION.md#follow-up-desktop-testing); the 0.4.9 build includes those source fixes. Historical tests do not qualify the new Gemma/Muse models; see [0.4.9 validation](PREVIEW_0_4_9_VALIDATION.md).
 
 | Harness | Relevant connection mechanism | Reflect Go status |
 |---|---|---|

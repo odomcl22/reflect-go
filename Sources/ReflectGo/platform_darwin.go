@@ -21,7 +21,7 @@ func detectHardware() (Hardware, error) {
 	if err != nil || ram == 0 {
 		return Hardware{}, fmt.Errorf("cannot read physical memory")
 	}
-	return Hardware{OS: "macOS " + sysctlValue("kern.osproductversion"), CPU: sysctlValue("machdep.cpu.brand_string"), Architecture: runtime.GOARCH, PhysicalMemoryBytes: ram, CPUThreads: runtime.NumCPU(), ScreeningBudgetBytes: ram / 2}, nil
+	return Hardware{OS: "macOS " + sysctlValue("kern.osproductversion"), CPU: sysctlValue("machdep.cpu.brand_string"), Architecture: runtime.GOARCH, PhysicalMemoryBytes: ram, CPUThreads: runtime.NumCPU(), ScreeningBudgetBytes: macMemoryBudget(ram)}, nil
 }
 func processMemory(pid int) uint64 {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)

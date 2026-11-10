@@ -1,6 +1,6 @@
 # Reflect Go — roadmap to 1.0
 
-Updated: 2026-10-10. This remains the acceptance roadmap. Core implementation is now in the 0.4.7 engineering preview; see [implementation and validation](PREVIEW_0_4_7_VALIDATION.md) for completed checks and remaining gates. Do not treat implementation as full physical-device or coding-quality qualification.
+Updated: 2026-11-09. The 0.4.9 preview adds a simpler download layout, curated model discovery, native Claude acquisition, and the Gemma + Muse Starter Pack. See [validation](PREVIEW_0_4_9_VALIDATION.md) for executed checks and hardware limits.
 
 ## Product direction
 
@@ -8,7 +8,7 @@ Reflect Go carries the inference engine, model library, and preconfigured suppor
 
 Reflect Go manages model availability, loading, hardware adaptation, and client compatibility. Clients manage conversations, projects, tasks, tools, and their normal permissions. Built-in chat is a useful direct interface and setup check; the client workflow remains primary.
 
-This roadmap supersedes earlier proposals to reserve portable clients for a Plus edition. Earlier phase plans and validation reports remain historical records. Phase 4.6 is the current engineering preview; it does not become 1.0 simply by being published.
+Both editions provide the same application and client features. Earlier phase plans and validation reports remain historical records; version 1.0 still requires the acceptance checks below.
 
 ## Intended service blueprint
 
@@ -111,15 +111,15 @@ Evaluate MLX and Uzu later as optional Apple Silicon backends with the same work
 | Edition | Planned contents |
 | --- | --- |
 | Reflect Go | Application, supported inference runtimes, supported portable CLI packs, and preconfigured local profiles; no weights. |
-| Reflect Go Starter Pack | The same application and client functionality, plus one small, validated demonstration model. |
+| Reflect Go Starter Pack | The same application and client functionality with Gemma 4 31B QAT Q4_0 and Muse Glimmer 30B Q4_K_M weights; intended for compatible 48 GiB+ hosts. |
 
-No separate Plus feature tier. The small starter model proves setup/basic chat; do not market it as a capable coding model without representative results. Offer a clear path to download a coding model appropriate to the host.
+The Starter Pack supplies both preselected model files through a verified multipart download. Smaller computers can use the model-free edition and its catalog, including an optional IBM Granite 1B chat model. Hardware and task qualification remain separate from download integrity.
 
-Codex CLI, Claude Code CLI, and OpenCode CLI remain the initial integration targets. The personal copy already includes all three. Resolve a permitted public acquisition/distribution path per client before publishing the download promise. The current shareable archive excludes proprietary Claude binaries; preparation from the vendor may be necessary if public bundling is unavailable. Document any one-time network preparation honestly.
+Codex and OpenCode are bundled; Claude Code is acquired directly from Anthropic using Get Claude Code. The native in-app downloader avoids requiring Python or Node. Hermes remains a possible optional client after its portable runtime, data paths, and dependencies are qualified. Separate downloads per client are not planned.
 
 On GitHub, lead with these two download choices, supported/tested platforms, exact launch instructions, sizes, checksums, and a short first-run guide. Keep old phases accessible as historical previews rather than competing main downloads. Use platform-specific assets or component packs as needed, while retaining the same functionality. Do not promise “any computer” or fully bundled project toolchains.
 
-Continue storing generated packages in `dist/`, backup archives only in the project's top-level `releases/`, and shared weights once in `Models/`. Do not put models or personal runtime/client state into source Git or historical software backups. The Starter Pack's explicit distributable model is the intentional exception to model-free download packaging, not permission to copy the whole personal library.
+Continue storing generated packages in `dist/`, backup archives only in the project's top-level `releases/`, and shared weights once in `Models/`. Do not put models or personal runtime/client state into source Git or historical software backups. The Starter Pack's explicit distributable models are the intentional exception to model-free download packaging, not permission to copy the whole personal library.
 
 ## Deferred scope
 
@@ -138,3 +138,7 @@ Reference integrations inform the design; they do not establish that Reflect Go 
 ## 0.4.8 desktop and distribution follow-up
 
 Implemented: larger desktop context with compact cache and GGUF limits, Claude reply-budget normalization, Codex desktop catalog/router, OpenCode JSON/JSONC provider, normal restart plus configuration restoration on quit, native Mac/Windows icons, and platform-specific Reflect Go / Starter Pack archives. See [0.4.8 validation](PREVIEW_0_4_8_VALIDATION.md) for evidence and remaining device/workflow qualification. Trusted publisher signing, Windows Store desktop discovery, long-conversation compaction and Antigravity desktop are not claimed complete.
+
+## 0.4.9 model finder and packaging
+
+One launcher and one support folder per platform download. The model finder searches a curated, pinned Hugging Face catalog, with readable search/developer/memory controls and additional size/status/use filters. Live Hugging Face search, richer architecture-aware download estimates, and portable desktop harnesses are future work. See [LM Studio selector research](LM_STUDIO_SELECTOR_REVIEW.md).

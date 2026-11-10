@@ -13,6 +13,28 @@ import (
 )
 
 func productRoutes(mux *http.ServeMux, root string, manager *EngineManager, downloads *DownloadManager) {
+	mux.HandleFunc("/api/client-setup", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if r.Method == "POST" {
+			var p struct {
+				Client string `json:"client"`
+			}
+			decoder := json.NewDecoder(http.MaxBytesReader(w, r.Body, 1024))
+			decoder.DisallowUnknownFields()
+			if !strings.HasPrefix(r.Header.Get("Content-Type"), "application/json") || decoder.Decode(&p) != nil || decoder.Decode(new(any)) != io.EOF || p.Client != "claude" {
+				http.Error(w, "Choose Claude Code setup", 400)
+				return
+			}
+			if err := downloads.clients.start(); err != nil {
+				http.Error(w, err.Error(), 409)
+				return
+			}
+		} else if r.Method != "GET" {
+			http.Error(w, "GET or POST required", 405)
+			return
+		}
+		json.NewEncoder(w).Encode(downloads.clients.snapshot())
+	})
 	send := func(w http.ResponseWriter, v any) {
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(v)
@@ -68,12 +90,21 @@ func productRoutes(mux *http.ServeMux, root string, manager *EngineManager, down
 	})
 	mux.HandleFunc("/api/download", func(w http.ResponseWriter, r *http.Request) {
 		var p struct {
-			ID string `json:"id"`
+			ID  string   `json:"id"`
+			IDs []string `json:"ids"`
 		}
 		if !post(w, r, &p) {
 			return
 		}
-		if err := downloads.start(p.ID); err != nil {
+		ids := p.IDs
+		if p.ID != "" {
+			if len(ids) > 0 {
+				http.Error(w, "Choose a model or a model list", 400)
+				return
+			}
+			ids = []string{p.ID}
+		}
+		if err := downloads.startMany(ids); err != nil {
 			http.Error(w, err.Error(), 400)
 			return
 		}

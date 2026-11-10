@@ -14,9 +14,9 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 TARGETS = ['macos-arm64', 'macos-x64', 'windows-x64', 'windows-arm64', 'linux-x64', 'linux-arm64']
-PREVIEW_VERSION = '0.4.8'
-PREVIEW_BUILD = '48'
-PREVIEW_FOLDER = 'Phase 4.8'
+PREVIEW_VERSION = '0.4.9'
+PREVIEW_BUILD = '49'
+PREVIEW_FOLDER = 'Phase 4.9'
 
 def preview_bundle_identifier(version=PREVIEW_VERSION):
     """Preserved previews must not compete for one macOS application identity."""
@@ -67,7 +67,7 @@ def assemble(source, destination, refresh=False):
     if destination.exists() and not refresh:
         raise SystemExit('Destination exists; choose a fresh directory to preserve prior builds.')
     if not (source / 'manifest.json').is_file():
-        raise SystemExit('A prepared Phase 4.7 software package is required.')
+        raise SystemExit('A prepared previous-phase software package is required.')
     # Replacing/signing the native binary while it is loaded changes the code
     # identity macOS sees for that running process. Refuse before any writes.
     require_native_app_stopped(destination)
@@ -77,6 +77,8 @@ def assemble(source, destination, refresh=False):
         shutil.copytree(source, destination, copy_function=os.link,
                     ignore=lambda path, names: [n for n in names if n in ('state', 'models', 'Models', 'Reflect Go.app', '.DS_Store') or n.startswith('._')])
         shutil.copytree(source/'Reflect Go.app', destination/'Reflect Go.app')
+    # A new build cannot inherit a previous build's notarization receipt.
+    (destination/'SIGNING.json').unlink(missing_ok=True)
     compiler=ROOT/'.build/toolchains/go/bin/go'
     subprocess.run([sys.executable,str(ROOT/'scripts/build_icons.py')],check=True)
     env={**os.environ,'GOMODCACHE':str(ROOT/'.build/go-mod-cache'),'GOCACHE':str(ROOT/'.build/go-cache'),'GOTOOLCHAIN':'local','CGO_ENABLED':'0'}
@@ -110,10 +112,12 @@ def assemble(source, destination, refresh=False):
     for display,name in [('Codex','codex'),('Claude','claude'),('OpenCode','opencode')]:
         path=destination/('Connect '+display+'.command');path.unlink(missing_ok=True)
         path.write_text('#!/bin/sh\nROOT=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)\nexec /bin/sh "$ROOT/Reflect Go.sh" connect '+name+' --project "${1-}" --hold\n');path.chmod(0o755)
+    launcher=destination/'Reflect Go.sh';launcher.unlink(missing_ok=True)
+    shutil.copyfile(ROOT/'launchers/phase4/Reflect Go.sh',launcher);launcher.chmod(0o755)
     for name in ('README.md','VALIDATION.md','ROADMAP.md','HARNESS_COMPATIBILITY.md'):
         target=destination/name;target.unlink(missing_ok=True)
-        doc=ROOT/'docs'/({'README.md':'PREVIEW_0_4_8.md','VALIDATION.md':'PREVIEW_0_4_8_VALIDATION.md','ROADMAP.md':'ROADMAP.md','HARNESS_COMPATIBILITY.md':'HARNESS_COMPATIBILITY.md'}[name])
-        if doc.exists():target.write_text(doc.read_text().replace('(PREVIEW_0_4_8_VALIDATION.md)', '(VALIDATION.md)'))
+        doc=ROOT/'docs'/({'README.md':'PREVIEW_0_4_9.md','VALIDATION.md':'PREVIEW_0_4_9_VALIDATION.md','ROADMAP.md':'ROADMAP.md','HARNESS_COMPATIBILITY.md':'HARNESS_COMPATIBILITY.md'}[name])
+        if doc.exists():target.write_text(doc.read_text().replace('(PREVIEW_0_4_9_VALIDATION.md)', '(VALIDATION.md)'))
     # Runtime/client bytes are unchanged hard links from the verified source;
     # preserve their hashes and recalculate everything rebuilt above.
     for module,version in [('github.com/klauspost/compress','v1.18.0'),('github.com/pelletier/go-toml/v2','v2.2.4'),('github.com/tailscale/hujson','v0.0.0-20260727124030-b80ff77dac4f')]:
@@ -133,8 +137,8 @@ def assemble(source, destination, refresh=False):
 
 if __name__=='__main__':
     parser=argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--source',type=Path,default=ROOT/'dist/Reflect Go/Phase 4.7')
-    parser.add_argument('--destination',type=Path,default=ROOT/'dist/Reflect Go/Phase 4.8')
+    parser.add_argument('--source',type=Path,default=ROOT/'dist/Reflect Go/Phase 4.8')
+    parser.add_argument('--destination',type=Path,default=ROOT/'dist/Reflect Go/Phase 4.9')
     parser.add_argument('--refresh',action='store_true',help='Rebuild an existing development preview; never use on preserved phases')
     args=parser.parse_args()
     assemble(args.source.resolve(),args.destination.resolve(),args.refresh)

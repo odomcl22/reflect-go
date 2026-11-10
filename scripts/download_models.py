@@ -5,6 +5,8 @@ Nothing is downloaded by default. Partial files are hidden from the model picker
 only a complete SHA-256 verified file is renamed to .gguf. No host download cache.
 """
 import argparse
+from collections import deque
+from concurrent.futures import ThreadPoolExecutor
 import hashlib
 import json
 import os
@@ -20,6 +22,7 @@ LOCK = ROOT / "config/model-library.lock.json"
 CHUNK = 4 * 1024 * 1024
 WINDOW = 64 * 1024 * 1024
 RESERVE = 1024 ** 3
+CONNECTIONS = 1
 
 
 def digest(path):
@@ -55,6 +58,8 @@ def remaining(folder, item):
 
 
 def transfer(item, part):
+    if CONNECTIONS > 1:
+        return transfer_parallel(item, part)
     total = item["size_bytes"]
     offset = part.stat().st_size if part.exists() else 0
     if offset == total:
@@ -106,6 +111,81 @@ def transfer(item, part):
         os.fsync(out.fileno())
 
 
+def fetch_range(item, offset, end):
+    """Fetch one bounded range into RAM; never write out-of-order disk ranges."""
+    total = item["size_bytes"]
+    request = urllib.request.Request(item["url"], headers={
+        "Range": f"bytes={offset}-{end}", "Accept-Encoding": "identity",
+        "User-Agent": "ReflectGo-model-download/1",
+    })
+    expected = end - offset + 1
+    with urllib.request.urlopen(request, timeout=90) as response:
+        if response.status == 206:
+            match = re.fullmatch(r"bytes (\d+)-(\d+)/(\d+)", response.headers.get("Content-Range", ""))
+            if not match or tuple(map(int, match.groups())) != (offset, end, total):
+                raise ValueError("Server returned an unexpected byte range")
+        elif response.status != 200 or offset or end != total - 1:
+            raise ValueError("Server did not honor the requested resume range")
+        length = response.headers.get("Content-Length")
+        if length is not None and int(length) != expected:
+            raise ValueError("Download size differs from pinned file size")
+        data = bytearray()
+        while len(data) <= expected:
+            block = response.read(min(CHUNK, expected - len(data) + 1))
+            if not block:
+                break
+            data.extend(block)
+        if len(data) > expected:
+            raise ValueError("Download exceeds pinned byte range")
+    return data
+
+
+def transfer_parallel(item, part):
+    """Prefetch bounded windows but append strictly in order for safe resume."""
+    total = item["size_bytes"]
+    offset = part.stat().st_size if part.exists() else 0
+    initial = offset
+    started = last_report = time.monotonic()
+    pending = deque()
+    pool = ThreadPoolExecutor(max_workers=CONNECTIONS)
+    next_offset = offset
+
+    def submit():
+        nonlocal next_offset
+        if next_offset < total:
+            end = min(next_offset + WINDOW, total) - 1
+            pending.append((next_offset, end, pool.submit(fetch_range, item, next_offset, end)))
+            next_offset = end + 1
+
+    try:
+        for _ in range(CONNECTIONS):
+            submit()
+        with part.open("ab") as out:
+            while pending:
+                start, end, future = pending.popleft()
+                data = future.result()
+                if start != offset:
+                    raise ValueError("Download ranges must be appended in order")
+                if shutil.disk_usage(part.parent).free < len(data) + RESERVE:
+                    raise OSError("Stopped to preserve 1 GiB of free space")
+                out.write(data)
+                offset += len(data)
+                if len(data) != end - start + 1:
+                    raise ConnectionError(f"Incomplete download: {offset} of {total} bytes; partial retained")
+                submit()
+                now = time.monotonic()
+                if now - last_report >= 20:
+                    rate = (offset - initial) / max(now - started, 0.1) / 1e6
+                    print(f'{item["filename"]}: {offset / total:.1%} ({offset / 1e9:.2f}/{total / 1e9:.2f} GB), {rate:.1f} MB/s', flush=True)
+                    last_report = now
+            out.flush()
+            os.fsync(out.fileno())
+    finally:
+        for _, _, future in pending:
+            future.cancel()
+        pool.shutdown(wait=True, cancel_futures=True)
+
+
 def download(folder, item):
     target, part = paths(folder, item)
     if target.exists():
@@ -135,11 +215,15 @@ def download(folder, item):
 
 
 def main():
+    global CONNECTIONS
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--models-dir", type=Path, required=True)
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--connections", type=int, choices=(1, 2, 4, 8), default=1,
+                        help="Bounded parallel range requests; writes remain sequential and resumable")
     parser.add_argument("model_ids", nargs="+")
     args = parser.parse_args()
+    CONNECTIONS = args.connections
     models = json.loads(LOCK.read_text())["models"]
     ids = list(dict.fromkeys(args.model_ids))
     unknown = set(ids) - models.keys()

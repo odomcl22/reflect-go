@@ -83,6 +83,23 @@ class Downloads(unittest.TestCase):
         request.assert_not_called()
         self.assertFalse(self.part.exists())
 
+    def test_parallel_ranges_keep_resume_prefix_and_order(self):
+        self.part.write_bytes(self.data[:9])
+        def reply(request, **kwargs):
+            start, end = map(int, request.headers['Range'].removeprefix('bytes=').split('-'))
+            return Response(self.data[start:end+1], 206, **{'Content-Range': f'bytes {start}-{end}/{len(self.data)}'})
+        with patch.object(module, 'CONNECTIONS', 4), patch.object(module, 'WINDOW', 10), patch.object(module.urllib.request, 'urlopen', side_effect=reply):
+            module.download(self.folder, self.item)
+        self.assertEqual(self.target.read_bytes(), self.data)
+        self.assertFalse(self.part.exists())
+
+    def test_parallel_wrong_range_cannot_publish_or_change_prefix(self):
+        self.part.write_bytes(self.data[:9])
+        with patch.object(module, 'CONNECTIONS', 4), patch.object(module, 'WINDOW', 10), patch.object(module.urllib.request, 'urlopen', return_value=Response(self.data[9:19], 206, **{'Content-Range': f'bytes 8-17/{len(self.data)}'})), self.assertRaisesRegex(ValueError, 'byte range'):
+            module.download(self.folder, self.item)
+        self.assertEqual(self.part.read_bytes(), self.data[:9])
+        self.assertFalse(self.target.exists())
+
 
 if __name__ == "__main__":
     unittest.main()

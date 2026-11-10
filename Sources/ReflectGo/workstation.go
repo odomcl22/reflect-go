@@ -587,7 +587,7 @@ func serveUI(root string) error {
 		if gateway.PID > 0 {
 			status.ResidentBytes = processMemory(gateway.PID)
 		}
-		send(w, map[string]any{"engine": status, "gateway": gateway, "clients": clients, "clientReports": productStatus(root), "download": downloads.snapshot(), "platform": platformID(), "version": version})
+		send(w, map[string]any{"engine": status, "gateway": gateway, "clients": clients, "clientReports": productStatus(root), "download": downloads.snapshot(), "clientSetup": downloads.clients.snapshot(), "platform": platformID(), "version": version})
 	})
 	mux.HandleFunc("/api/inventory", func(w http.ResponseWriter, r *http.Request) {
 		s, e := loadSettings(root)

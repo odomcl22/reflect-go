@@ -7,6 +7,23 @@ starter model provides basic chat. No uploads are performed by this script.
 import argparse, hashlib, json, re, zipfile
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
+SUPPORT='Reflect Go Files/'
+
+def launcher_member(rel):
+    return rel.startswith('Reflect Go.app/') or rel=='START Reflect Go.exe'
+
+def archive_member(rel):
+    if rel=='START Reflect Go.exe':return 'Reflect Go.exe'
+    if rel.startswith('Reflect Go.app/'):return rel
+    return SUPPORT+rel
+
+def linux_desktop():
+    # Keep the entry location in a separate argument, never in shell code.
+    command='exec sh "$(dirname -- "$1")/Reflect Go Files/Reflect Go.sh"'
+    quoted='"'+command.replace('\\','\\\\').replace('"','\\"').replace('$','\\$').replace('`','\\`')+'"'
+    # The desktop value unescapes backslashes before parsing quoted arguments.
+    quoted=quoted.replace('\\','\\\\')
+    return '[Desktop Entry]\nType=Application\nName=Reflect Go\nComment=Your portable AI workstation\nIcon=applications-development\nTerminal=false\nExec=sh -c '+quoted+' ReflectGo %k\nCategories=Development;\n'
 
 def public_build_metadata(value):
     """Build flags are provenance, not a reason to publish a builder's home path."""
@@ -67,15 +84,45 @@ def package(bundle,output,starter=None,platform=None):
         # A public archive cannot default to a model it does not include.
         value.pop('provider_model',None)
         replacements[name]=(json.dumps(value,indent=2)+'\n').encode()
-    clean={k:manifest[k]for k in members}
-    for name,data in replacements.items():clean[name]=hashlib.sha256(data).hexdigest()
+    # The support manifest is relative to Reflect Go Files. Top-level native
+    # launchers are covered by the ZIP checksum and Apple's app signature.
+    clean={k:manifest[k]for k in members if not launcher_member(k)}
+    for name,data in replacements.items():
+        if not launcher_member(name):clean[name]=hashlib.sha256(data).hexdigest()
+    # Claude is downloaded by each user from Anthropic's pinned native package;
+    # no proprietary executable is redistributed in the public archive.
+    claude_lock=json.loads((ROOT/'config/harness-targets.lock.json').read_text())
+    # Keep all six download records, even in a platform-specific archive, so a
+    # user can prepare their own drive for another computer without a rebuild.
+    claude_lock['packs']={k:v for k,v in claude_lock['packs'].items() if k.startswith('claude/')}
+    claude_lock['versions']={'claude':claude_lock['versions']['claude']}
+    additions={
+        'tools/add_claude_cli.py':(ROOT/'scripts/add_claude_cli.py').read_bytes(),
+        'tools/prepare_harnesses.py':(ROOT/'scripts/prepare_harnesses.py').read_bytes(),
+        'config/claude-cli.lock.json':(json.dumps(claude_lock,indent=2)+'\n').encode(),
+    }
+    # Documentation is assembled from authoritative sources, just like embedded
+    # UI assets. It may be finalized after code signing without changing code.
+    for name,source in {
+        'README.md':'PREVIEW_0_4_9.md', 'VALIDATION.md':'PREVIEW_0_4_9_VALIDATION.md',
+        'ROADMAP.md':'ROADMAP.md', 'HARNESS_COMPATIBILITY.md':'HARNESS_COMPATIBILITY.md',
+        'PORTABLE_CLIS.md':'PORTABLE_CLIS.md', 'LM_STUDIO_SELECTOR_REVIEW.md':'LM_STUDIO_SELECTOR_REVIEW.md',
+    }.items():
+        data=(ROOT/'docs'/source).read_text().replace('(PREVIEW_0_4_9_VALIDATION.md)','(VALIDATION.md)').encode()
+        if name in members:
+            replacements[name]=data;clean[name]=hashlib.sha256(data).hexdigest()
+        else:additions[name]=data
+    for name,data in additions.items():clean[name]=hashlib.sha256(data).hexdigest()
     if starter:clean['models/'+model['filename']]=model['sha256']
     signing=json.loads(members['SIGNING.json'].read_text()) if 'SIGNING.json' in members else {}
     signature=('Mac binaries are Developer ID signed and notarized.\n' if platform=='macos' and signing.get('notarization_status')=='Accepted' else 'Preview binaries do not carry trusted publisher verification; see release notes.\n')
-    readme=('Reflect Go 0.4.8 preview. Extract the entire ZIP before opening.\n'
-            'Mac: Reflect Go.app. Windows: START Reflect Go.exe. Linux: sh "Reflect Go.sh".\n'
-            'Keep the app/exe beside bin, runtime, harnesses, config and Models.\n'
-            'Codex and OpenCode CLI packs included. Proprietary Claude CLI binaries excluded.\n'
+    readme=('Reflect Go 0.4.9 preview. Extract the entire ZIP before opening.\n'
+            'Mac: Reflect Go.app. Windows: Reflect Go.exe. Linux: Reflect Go.desktop.\n'
+            'Keep the launcher beside Reflect Go Files. Models, clients and settings stay inside that folder.\n'
+            'Linux fallback: sh "Reflect Go Files/Reflect Go.sh". Your desktop may require Allow Launching.\n'
+            'Codex and OpenCode CLI packs included. To add Claude Code to your own drive,\n'
+            'open Reflect Go and click Get Claude Code. No Python or Node installation needed.\n'
+            'That optional one-time download requires internet and uses Anthropic directly.\n'
             'Installed desktop apps connect through More apps; preview qualification applies.\n'
             'Quit Reflect Go before unplugging. Connected desktop apps restart with previous settings.\n'
             +signature
@@ -84,19 +131,23 @@ def package(bundle,output,starter=None,platform=None):
     output.parent.mkdir(parents=True,exist_ok=True)
     prefix='Reflect Go/'
     with zipfile.ZipFile(output,'x',compression=zipfile.ZIP_DEFLATED,compresslevel=6,allowZip64=True)as z:
-        z.writestr(prefix+'Models/','')
+        z.writestr(prefix+SUPPORT+'Models/','')
         for rel,path in sorted(members.items()):
-            if rel in replacements:z.writestr(prefix+rel,replacements[rel])
-            else:z.write(path,prefix+rel)
-        z.writestr(prefix+'manifest.json',json.dumps(clean,indent=2)+'\n')
-        z.writestr(prefix+'DOWNLOAD-README.txt',readme)
-        if starter:z.write(starter,prefix+'Models/'+model['filename'],compress_type=zipfile.ZIP_STORED)
+            if rel in replacements:z.writestr(prefix+archive_member(rel),replacements[rel])
+            else:z.write(path,prefix+archive_member(rel))
+        for name,data in additions.items():z.writestr(prefix+SUPPORT+name,data)
+        z.writestr(prefix+SUPPORT+'manifest.json',json.dumps(clean,indent=2)+'\n')
+        z.writestr(prefix+SUPPORT+'DOWNLOAD-README.txt',readme)
+        if platform=='linux':
+            info=zipfile.ZipInfo(prefix+'Reflect Go.desktop');info.create_system=3;info.external_attr=0o100755<<16
+            z.writestr(info,linux_desktop())
+        if starter:z.write(starter,prefix+SUPPORT+'Models/'+model['filename'],compress_type=zipfile.ZIP_STORED)
     with output.open('rb')as f:digest=hashlib.file_digest(f,'sha256').hexdigest()
     output.with_suffix(output.suffix+'.sha256').write_text(digest+'  '+output.name+'\n')
     print(output,flush=True)
 
 if __name__=='__main__':
     p=argparse.ArgumentParser(description=__doc__)
-    p.add_argument('--bundle',type=Path,default=ROOT/'dist/Reflect Go/Phase 4.8');p.add_argument('--output',type=Path,required=True)
+    p.add_argument('--bundle',type=Path,default=ROOT/'dist/Reflect Go/Phase 4.9');p.add_argument('--output',type=Path,required=True)
     p.add_argument('--starter',type=Path);p.add_argument('--platform',choices=('macos','windows','linux'))
     a=p.parse_args();package(a.bundle.resolve(),a.output.resolve(),a.starter.resolve()if a.starter else None,a.platform)
