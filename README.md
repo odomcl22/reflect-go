@@ -8,11 +8,13 @@ and work with your local model.
 [Watch the walkthrough](docs/media/reflect-go-walkthrough.mp4) ·
 [App compatibility](docs/HARNESS_COMPATIBILITY.md)
 
-Reflect Go includes a local inference engine, preconfigured portable coding
-clients, a model library, and built-in chat. Your drive holds the model weights;
-the computer provides the processing power and memory. Once your models and
-software are downloaded, local inference works offline without a cloud AI
-subscription or a separate engine installation.
+Reflect Go is a portable inference engine (PI) and AI workstation. It runs
+compatible GGUF models locally with llama.cpp. Prepare the software and models
+on a connected computer, then run the folder from local storage or an external
+drive on an offline computer. On Mac, open the app directly from the extracted
+folder without running an installer. Inference uses the computer's memory and
+processing power. You can share a prepared folder with your team and give each
+person a writable copy for their settings and sessions.
 
 [![Watch the Reflect Go interface walkthrough](docs/media/reflect-go-walkthrough.jpg)](docs/media/reflect-go-walkthrough.mp4)
 
@@ -28,33 +30,36 @@ does not require the large Starter Pack models. IBM Granite 4.0 1B is
 available in the app for a basic chat test; it is not a coding recommendation.
 
 - **Reflect Go** includes the application, inference runtimes, and portable Codex
-  and OpenCode CLI clients. Add your own model or download one in the app.
+  and OpenCode CLI clients. **Get Claude Code** adds the portable Claude CLI
+  with a one-time download from Anthropic. Add your own model or download one
+  in the app.
 - **Reflect Go Starter Pack** includes the same software with **Gemma 4 31B
   Instruct QAT Q4_0** and **Muse Glimmer 30B Q4_K_M**. It targets compatible
   computers with 48 GiB or more memory; models load one at a time.
 
 | Platform | Reflect Go | Reflect Go Starter Pack |
 | --- | --- | --- |
-| Mac · Apple Silicon + Intel | [Download 0.4.10](https://github.com/odomcl22/reflect-go/releases/download/v0.4.10-preview/ReflectGo-0.4.10-macos.zip) | [Download 0.4.10 helper](https://github.com/odomcl22/reflect-go/releases/download/v0.4.10-preview/ReflectGo-StarterPack-0.4.10-macos.zip) |
-| Windows · x64 + ARM64 | [Download ZIP](https://github.com/odomcl22/reflect-go/releases/download/v0.4.9-preview/ReflectGo-0.4.9-windows.zip) | [Download ZIP](https://github.com/odomcl22/reflect-go/releases/download/v0.4.9-preview/ReflectGo-StarterPack-0.4.9-windows.zip) |
-| Linux · x64 + ARM64 | [Download ZIP](https://github.com/odomcl22/reflect-go/releases/download/v0.4.9-preview/ReflectGo-0.4.9-linux.zip) | [Download ZIP](https://github.com/odomcl22/reflect-go/releases/download/v0.4.9-preview/ReflectGo-StarterPack-0.4.9-linux.zip) |
+| Mac · Apple Silicon + Intel | [Download 4.10](https://github.com/odomcl22/reflect-go/releases/download/v0.4.10-preview/ReflectGo-0.4.10-macos.zip) | [Download 4.10 helper](https://github.com/odomcl22/reflect-go/releases/download/v0.4.10-preview/ReflectGo-StarterPack-0.4.10-macos.zip) |
+| Windows · x64 + ARM64 | [Download 4.9](https://github.com/odomcl22/reflect-go/releases/download/v0.4.9-preview/ReflectGo-0.4.9-windows.zip) | [Download 4.9](https://github.com/odomcl22/reflect-go/releases/download/v0.4.9-preview/ReflectGo-StarterPack-0.4.9-windows.zip) |
+| Linux · x64 + ARM64 | [Download 4.9](https://github.com/odomcl22/reflect-go/releases/download/v0.4.9-preview/ReflectGo-0.4.9-linux.zip) | [Download 4.9](https://github.com/odomcl22/reflect-go/releases/download/v0.4.9-preview/ReflectGo-StarterPack-0.4.9-linux.zip) |
 
-**Mac: 0.4.10 preview.** The signed, Apple-notarized update gives first-time
+**Mac 4.10 preview.** The signed, Apple-notarized update gives first-time
 Metal startup more time and makes CPU mode independent of Metal.
 [Mac release notes and checksums](https://github.com/odomcl22/reflect-go/releases/tag/v0.4.10-preview) ·
 [Mac testing status](docs/PREVIEW_0_4_10_VALIDATION.md).
 
-**Windows and Linux: 0.4.9 preview.** Windows executables are unsigned and may
+**Windows and Linux 4.9 preview.** Windows executables are unsigned and may
 show a SmartScreen warning. Physical Windows/Linux testing is still pending.
-[0.4.9 release notes and checksums](https://github.com/odomcl22/reflect-go/releases/tag/v0.4.9-preview).
+[4.9 release notes and checksums](https://github.com/odomcl22/reflect-go/releases/tag/v0.4.9-preview).
 
 The Starter Pack transfers about **34.4 GB of weights**, plus the app. Its small
 ZIP contains a download helper that retrieves and verifies all preselected pack
-files from this release, then assembles the ready-to-run folder. GitHub's per-file
-limit requires model parts; you do not need to select or download models inside
-the app afterward. Allow **60 GB free space** during preparation and use a drive
-that supports files over 4 GB (such as exFAT or APFS, rather than FAT32).
-[Starter Pack instructions](docs/PREVIEW_0_4_9.md).
+files from GitHub, then assembles the ready-to-run folder. Both models are
+ready to use after assembly. Prepare the pack on a connected computer before
+moving it to an offline system. Allow **60 GB free space** during preparation
+and use a drive that supports files over 4 GB, such as exFAT or APFS.
+[Mac Starter Pack instructions](docs/PREVIEW_0_4_10.md) ·
+[Windows and Linux Starter Pack instructions](docs/PREVIEW_0_4_9.md).
 
 To prepare the Starter Pack, extract its ZIP and run **Download Reflect Go
 Starter Pack.command** on Mac, **Download Reflect Go Starter Pack.cmd** on
@@ -113,14 +118,17 @@ Use **Codex CLI** or **OpenCode CLI** directly from the included portable client
 Reflect Go configures their local connection and keeps their profiles on the drive.
 For **Claude Code**, click **Get Claude Code** once. Reflect Go downloads the
 pinned native client directly from Anthropic, verifies it, and keeps it on your
-drive. No separate Python or Node installation is needed. Claude's proprietary
-binary is not redistributed in the public ZIP. [Client setup](docs/PORTABLE_CLIS.md).
+drive. Complete this setup before moving to an offline computer.
+[Client setup](docs/PORTABLE_CLIS.md).
 
 Already use a desktop app? Preview connections are available for **Claude
 Desktop**, **Codex mode in ChatGPT Desktop**, and **OpenCode Desktop**. These
-require the desktop app to be installed on your computer. Each app has its own
-model and platform requirements, and full desktop coding workflows are still
-being tested. [Check compatibility](docs/HARNESS_COMPATIBILITY.md) before connecting.
+require the desktop app to be installed. Reflect Go temporarily configures the
+desktop client to send supported model requests to the local runtime and
+restores the previous configuration on disconnect. Desktop features such as
+dictation, web tools, and networked plugins can still contact online services.
+Full desktop tool workflows are still being tested.
+[Check compatibility](docs/HARNESS_COMPATIBILITY.md).
 
 You can also use Reflect Go's built-in **Chat** or launch **OpenCode Web**.
 Additional connections are under **More apps**.
