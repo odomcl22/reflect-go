@@ -165,6 +165,10 @@ cannot be restored automatically, Reflect Go reports the issue;
 
 ## About the project
 
+Reflect Go's original code is open source under the [MIT License](LICENSE).
+Third-party runtimes, clients, and models are covered by their respective
+licenses.
+
 Reflect Go is in active development. Explore the [roadmap](docs/ROADMAP.md),
 [compatibility details](docs/HARNESS_COMPATIBILITY.md), and
 [validation report](docs/PREVIEW_0_4_10_VALIDATION.md), or
