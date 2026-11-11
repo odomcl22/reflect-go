@@ -121,7 +121,8 @@ def package(bundle,output,starter=None,platform=None,version='0.4.10'):
     readme=(f'Reflect Go {version} preview. Extract the entire ZIP before opening.\n'
             'Mac: Reflect Go.app. Windows: Reflect Go.exe. Linux: Reflect Go.desktop.\n'
             'Keep the launcher beside Reflect Go Files. Models, clients and settings stay inside that folder.\n'
-            'Linux fallback: sh "Reflect Go Files/Reflect Go.sh". Your desktop may require Allow Launching.\n'
+            + ('Mac: If asked to locate the portable files, select the Reflect Go Files folder from this download.\n' if platform=='macos' and version=='0.4.10' else '')
+            + 'Linux fallback: sh "Reflect Go Files/Reflect Go.sh". Your desktop may require Allow Launching.\n'
             'Codex and OpenCode CLI packs included. To add Claude Code to your own drive,\n'
             'open Reflect Go and click Get Claude Code. No Python or Node installation needed.\n'
             'That optional one-time download requires internet and uses Anthropic directly.\n'

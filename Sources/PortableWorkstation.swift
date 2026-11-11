@@ -1,4 +1,5 @@
 import Cocoa
+import Security
 import WebKit
 
 // Native Mac window for the same authenticated workstation used on Windows and
@@ -19,17 +20,6 @@ import WebKit
     private var choosingProject = false
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        let besideApp = Bundle.main.bundleURL.deletingLastPathComponent()
-        let support = besideApp.appendingPathComponent("Reflect Go Files", isDirectory: true)
-        // Public downloads keep one app icon beside one support folder. Older
-        // preserved phase folders retain their original flat layout.
-        var directory: ObjCBool = false
-        let root = FileManager.default.fileExists(atPath: support.path, isDirectory: &directory) && directory.boolValue ? support : besideApp
-        #if arch(arm64)
-        let platform = "macos-arm64"
-        #else
-        let platform = "macos-x64"
-        #endif
         let config = WKWebViewConfiguration()
         config.websiteDataStore = .nonPersistent()
         config.userContentController.add(self, name: "chooseProject")
@@ -61,8 +51,72 @@ import WebKit
             editMenu.addItem(withTitle: title, action: NSSelectorFromString(selector), keyEquivalent: key)
         }
         NSApp.mainMenu = menu
+        let besideApp = Bundle.main.bundleURL.deletingLastPathComponent()
+        // A browser download may be launched from an isolated directory by
+        // Gatekeeper. Let the user locate the portable files using AppKit.
+        if let executable = Self.findBackend(in: besideApp, requireSigned: false) {
+            startBackend(executable)
+        } else {
+            choosePortableFolder()
+        }
+    }
+
+    private static func findBackend(in folder: URL, requireSigned: Bool) -> URL? {
+        #if arch(arm64)
+        let platform = "macos-arm64"
+        #else
+        let platform = "macos-x64"
+        #endif
+        let files = FileManager.default
+        // Public downloads use the support folder; preserved previews are flat.
+        for root in [folder.appendingPathComponent("Reflect Go Files", isDirectory: true), folder] {
+            let executable = root.appendingPathComponent("bin/\(platform)/reflectgo")
+            guard files.isExecutableFile(atPath: executable.path),
+                  files.isReadableFile(atPath: root.appendingPathComponent("runtime-targets.json").path),
+                  (try? executable.resourceValues(forKeys: [.isRegularFileKey]).isRegularFile) == true,
+                  !requireSigned || isSignedBackend(executable) else { continue }
+            return executable
+        }
+        return nil
+    }
+
+    private static func isSignedBackend(_ executable: URL) -> Bool {
+        // A folder chosen by the user must not cause the launcher to run an
+        // unrelated executable with a matching filename.
+        let identity = "identifier \"reflectgo\" and anchor apple generic and certificate 1[field.1.2.840.113635.100.6.2.6] exists and certificate leaf[field.1.2.840.113635.100.6.1.13] exists and certificate leaf[subject.OU] = \"3TTH5EPH6K\""
+        var requirement: SecRequirement?
+        var code: SecStaticCode?
+        guard SecRequirementCreateWithString(identity as CFString, [], &requirement) == errSecSuccess,
+              let requirement,
+              SecStaticCodeCreateWithPath(executable as CFURL, [], &code) == errSecSuccess,
+              let code else { return false }
+        return SecStaticCodeCheckValidity(code, SecCSFlags(rawValue: kSecCSStrictValidate), requirement) == errSecSuccess
+    }
+
+    private func choosePortableFolder(invalid: Bool = false) {
+        let panel = NSOpenPanel()
+        panel.title = "Locate Reflect Go Files"
+        panel.message = invalid
+            ? "That folder doesn’t contain a complete, signed Reflect Go runtime. Extract the full Mac download and choose its Reflect Go Files folder."
+            : "Choose Reflect Go Files inside the folder you extracted. macOS can open a downloaded app separately from its files."
+        panel.prompt = "Open Reflect Go"
+        panel.canChooseDirectories = true
+        panel.canChooseFiles = false
+        panel.allowsMultipleSelection = false
+        panel.beginSheetModal(for: window) { [weak self] result in
+            guard let self else { return }
+            guard result == .OK, let folder = panel.url else { NSApp.terminate(nil); return }
+            if let executable = Self.findBackend(in: folder, requireSigned: true) {
+                self.startBackend(executable)
+            } else {
+                self.choosePortableFolder(invalid: true)
+            }
+        }
+    }
+
+    private func startBackend(_ executable: URL) {
         let child = Process(), pipe = Pipe(), output = Pipe()
-        child.executableURL = root.appendingPathComponent("bin/\(platform)/reflectgo")
+        child.executableURL = executable
         child.arguments = ["ui"]
         var env = ProcessInfo.processInfo.environment
         env["REFLECT_GO_NO_BROWSER"] = "1"
@@ -78,7 +132,14 @@ import WebKit
         }
         child.standardError = FileHandle.nullDevice
         process = child; owner = pipe
-        do { try child.run() } catch { fail("Could not open the portable workstation. Keep the app beside Reflect Go Files and extract the complete download.\n\(error.localizedDescription)"); return }
+        do { try child.run() } catch {
+            process = nil
+            output.fileHandleForReading.readabilityHandler = nil
+            startupOutput = nil
+            owner = nil
+            fail("Could not launch the local runtime. Extract the full Mac download to a writable folder or drive, then reopen Reflect Go.\n\(error.localizedDescription)")
+            return
+        }
         started = Date()
         timer = Timer.scheduledTimer(withTimeInterval: 0.25, repeats: true) { [weak self] _ in
             Task { @MainActor in self?.check() }

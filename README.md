@@ -39,13 +39,13 @@ available in the app for a basic chat test; it is not a coding recommendation.
 
 | Platform | Reflect Go | Reflect Go Starter Pack |
 | --- | --- | --- |
-| Mac · Apple Silicon + Intel | [Download 4.10](https://github.com/odomcl22/reflect-go/releases/download/v4.10-r2/ReflectGo-4.10-macos.zip) | [Download 4.10 helper](https://github.com/odomcl22/reflect-go/releases/download/v4.10-r2/ReflectGo-StarterPack-4.10-macos.zip) |
+| Mac · Apple Silicon + Intel | [Download 4.10](https://github.com/odomcl22/reflect-go/releases/download/v4.10-r3/ReflectGo-4.10-macos.zip) | [Download 4.10 helper](https://github.com/odomcl22/reflect-go/releases/download/v4.10-r3/ReflectGo-StarterPack-4.10-macos.zip) |
 | Windows · x64 + ARM64 | [Download 4.9](https://github.com/odomcl22/reflect-go/releases/download/v0.4.9-preview/ReflectGo-0.4.9-windows.zip) | [Download 4.9](https://github.com/odomcl22/reflect-go/releases/download/v0.4.9-preview/ReflectGo-StarterPack-0.4.9-windows.zip) |
 | Linux · x64 + ARM64 | [Download 4.9](https://github.com/odomcl22/reflect-go/releases/download/v0.4.9-preview/ReflectGo-0.4.9-linux.zip) | [Download 4.9](https://github.com/odomcl22/reflect-go/releases/download/v0.4.9-preview/ReflectGo-StarterPack-0.4.9-linux.zip) |
 
-**Mac 4.10 preview.** The signed, Apple-notarized update gives first-time
-Metal startup more time and makes CPU mode independent of Metal.
-[Mac release notes and checksums](https://github.com/odomcl22/reflect-go/releases/tag/v4.10-r2) ·
+**Mac 4.10 preview.** If macOS opens the app separately from its files, Reflect
+Go now lets you locate them. The app is signed and Apple-notarized.
+[Mac release notes and checksums](https://github.com/odomcl22/reflect-go/releases/tag/v4.10-r3) ·
 [Mac testing status](docs/PREVIEW_0_4_10_VALIDATION.md).
 
 **Windows and Linux 4.9 preview.** Windows executables are unsigned and may
@@ -76,7 +76,8 @@ folder. Source code stays here on GitHub.
    or computer. Keep the launcher beside **Reflect Go Files**. For the Starter
    Pack, run its download helper first, as described above.
 2. **Open Reflect Go:**
-   - **Mac:** open `Reflect Go.app` (macOS 13.3 or later).
+   - **Mac:** open `Reflect Go.app` (macOS 13.3 or later). If asked to locate
+     its files, select **Reflect Go Files** from the extracted download.
    - **Windows:** open `Reflect Go.exe`.
    - **Linux:** open `Reflect Go.desktop`; your desktop may require **Allow Launching**.
      A terminal fallback is `sh "Reflect Go Files/Reflect Go.sh"`.

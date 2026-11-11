@@ -15,7 +15,7 @@ import sys
 ROOT = Path(__file__).resolve().parents[1]
 TARGETS = ['macos-arm64', 'macos-x64', 'windows-x64', 'windows-arm64', 'linux-x64', 'linux-arm64']
 PREVIEW_VERSION = '0.4.10'
-PREVIEW_BUILD = '50'
+PREVIEW_BUILD = '51'
 PREVIEW_FOLDER = 'Phase 4.10'
 
 def preview_bundle_identifier(version=PREVIEW_VERSION):

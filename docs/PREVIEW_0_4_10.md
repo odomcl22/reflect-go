@@ -1,4 +1,4 @@
-# Reflect Go 0.4.10 Mac preview
+# Reflect Go 4.10 Mac preview
 
 This Mac update fixes a first-launch problem found when testing a fresh 0.4.9
 download on Apple Silicon. Metal can take more than a minute to prepare shaders
@@ -9,7 +9,8 @@ choosing **CPU** skips Metal initialization entirely.
 
 1. Extract the full Mac ZIP into a new folder. Keep **Reflect Go.app** beside
    **Reflect Go Files**.
-2. Open **Reflect Go.app**. In **Models → Add models**, download a small model
+2. Open **Reflect Go.app**. If the Mac asks you to locate its files, choose
+   **Reflect Go Files** from the folder you extracted. In **Models → Add models**, download a small model
    or import a compatible single-file GGUF. IBM Granite 4.0 1B is a basic chat
    option; Qwen3 4B Instruct is a coding candidate.
 3. Use **Start local chat**, or open a coding client with a suitable model.
