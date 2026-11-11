@@ -37,7 +37,7 @@ class PreviewBuildTests(unittest.TestCase):
         self.assertEqual(plistlib.dumps(source), before)
         self.assertEqual(metadata['CFBundleIdentifier'], module.preview_bundle_identifier())
         self.assertEqual(metadata['CFBundleShortVersionString'], '0.4.10')
-        self.assertEqual(metadata['CFBundleVersion'], '50')
+        self.assertEqual(metadata['CFBundleVersion'], '51')
         for key in ('CFBundleExecutable', 'CFBundleName', 'LSMinimumSystemVersion', 'NSHighResolutionCapable'):
             self.assertEqual(metadata[key], source[key])
         self.assertIn('portable software', metadata['NSDocumentsFolderUsageDescription'])
