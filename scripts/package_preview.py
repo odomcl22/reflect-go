@@ -97,6 +97,7 @@ def package(bundle,output,starter=None,platform=None,version='0.4.10'):
     claude_lock['packs']={k:v for k,v in claude_lock['packs'].items() if k.startswith('claude/')}
     claude_lock['versions']={'claude':claude_lock['versions']['claude']}
     additions={
+        'LICENSE':(ROOT/'LICENSE').read_bytes(),
         'tools/add_claude_cli.py':(ROOT/'scripts/add_claude_cli.py').read_bytes(),
         'tools/prepare_harnesses.py':(ROOT/'scripts/prepare_harnesses.py').read_bytes(),
         'config/claude-cli.lock.json':(json.dumps(claude_lock,indent=2)+'\n').encode(),

@@ -39,13 +39,13 @@ available in the app for a basic chat test; it is not a coding recommendation.
 
 | Platform | Reflect Go | Reflect Go Starter Pack |
 | --- | --- | --- |
-| Mac · Apple Silicon + Intel | [Download 4.10](https://github.com/odomcl22/reflect-go/releases/download/v0.4.10-preview/ReflectGo-0.4.10-macos.zip) | [Download 4.10 helper](https://github.com/odomcl22/reflect-go/releases/download/v0.4.10-preview/ReflectGo-StarterPack-0.4.10-macos.zip) |
+| Mac · Apple Silicon + Intel | [Download 4.10](https://github.com/odomcl22/reflect-go/releases/download/v4.10-r2/ReflectGo-4.10-macos.zip) | [Download 4.10 helper](https://github.com/odomcl22/reflect-go/releases/download/v4.10-r2/ReflectGo-StarterPack-4.10-macos.zip) |
 | Windows · x64 + ARM64 | [Download 4.9](https://github.com/odomcl22/reflect-go/releases/download/v0.4.9-preview/ReflectGo-0.4.9-windows.zip) | [Download 4.9](https://github.com/odomcl22/reflect-go/releases/download/v0.4.9-preview/ReflectGo-StarterPack-0.4.9-windows.zip) |
 | Linux · x64 + ARM64 | [Download 4.9](https://github.com/odomcl22/reflect-go/releases/download/v0.4.9-preview/ReflectGo-0.4.9-linux.zip) | [Download 4.9](https://github.com/odomcl22/reflect-go/releases/download/v0.4.9-preview/ReflectGo-StarterPack-0.4.9-linux.zip) |
 
 **Mac 4.10 preview.** The signed, Apple-notarized update gives first-time
 Metal startup more time and makes CPU mode independent of Metal.
-[Mac release notes and checksums](https://github.com/odomcl22/reflect-go/releases/tag/v0.4.10-preview) ·
+[Mac release notes and checksums](https://github.com/odomcl22/reflect-go/releases/tag/v4.10-r2) ·
 [Mac testing status](docs/PREVIEW_0_4_10_VALIDATION.md).
 
 **Windows and Linux 4.9 preview.** Windows executables are unsigned and may

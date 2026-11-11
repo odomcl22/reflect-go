@@ -29,3 +29,10 @@ The first Metal launch can take a few minutes. If you prefer CPU, select it in
 the service settings before starting local inference. See [validation](PREVIEW_0_4_10_VALIDATION.md)
 and [client compatibility](HARNESS_COMPATIBILITY.md). Windows and Linux downloads
 remain at 0.4.9 preview.
+
+Complete the Claude Code download while connected before moving the prepared
+folder to an offline Mac. Its client stays in the portable folder with Codex
+and OpenCode.
+
+Reflect Go's original code is MIT-licensed. See the included LICENSE file.
+Third-party clients, runtimes, and models retain their own licenses.
