@@ -7,8 +7,11 @@ choosing **CPU** skips Metal initialization entirely.
 
 ## Open the app
 
-1. Extract the full Mac ZIP into a new folder. Keep **Reflect Go.app** beside
-   **Reflect Go Files**.
+1. Open the Mac disk image and copy the entire **Reflect Go** folder to a writable
+   location. If you downloaded the ZIP, extract it in full. Keep **Reflect Go.app**
+   beside **Reflect Go Files**. The disk image carries the notarization ticket
+   for the app and bundled runtime. Follow your organization's software approval
+   process on a managed Mac.
 2. Open **Reflect Go.app**. If the Mac asks you to locate its files, choose
    **Reflect Go Files** from the folder you extracted. In **Models → Add models**, download a small model
    or import a compatible single-file GGUF. IBM Granite 4.0 1B is a basic chat

@@ -39,12 +39,14 @@ available in the app for a basic chat test; it is not a coding recommendation.
 
 | Platform | Reflect Go | Reflect Go Starter Pack |
 | --- | --- | --- |
-| Mac · Apple Silicon + Intel | [Download 4.10](https://github.com/odomcl22/reflect-go/releases/download/v4.10-r3/ReflectGo-4.10-macos.zip) | [Download 4.10 helper](https://github.com/odomcl22/reflect-go/releases/download/v4.10-r3/ReflectGo-StarterPack-4.10-macos.zip) |
+| Mac · Apple Silicon + Intel | [Download 4.10 disk image](https://github.com/odomcl22/reflect-go/releases/download/v4.10-r3/ReflectGo-4.10-macos.dmg) · [ZIP](https://github.com/odomcl22/reflect-go/releases/download/v4.10-r3/ReflectGo-4.10-macos.zip) | [Download 4.10 helper](https://github.com/odomcl22/reflect-go/releases/download/v4.10-r3/ReflectGo-StarterPack-4.10-macos.zip) |
 | Windows · x64 + ARM64 | [Download 4.9](https://github.com/odomcl22/reflect-go/releases/download/v0.4.9-preview/ReflectGo-0.4.9-windows.zip) | [Download 4.9](https://github.com/odomcl22/reflect-go/releases/download/v0.4.9-preview/ReflectGo-StarterPack-0.4.9-windows.zip) |
 | Linux · x64 + ARM64 | [Download 4.9](https://github.com/odomcl22/reflect-go/releases/download/v0.4.9-preview/ReflectGo-0.4.9-linux.zip) | [Download 4.9](https://github.com/odomcl22/reflect-go/releases/download/v0.4.9-preview/ReflectGo-StarterPack-0.4.9-linux.zip) |
 
-**Mac 4.10 preview.** If macOS opens the app separately from its files, Reflect
-Go now lets you locate them. The app is signed and Apple-notarized.
+**Mac 4.10 preview.** The disk image carries Apple's notarization ticket for
+the complete package, including the inference runtime. Open the disk image and
+copy the entire **Reflect Go** folder to a writable location before opening the
+app. If your organization manages your Mac, follow its software approval process.
 [Mac release notes and checksums](https://github.com/odomcl22/reflect-go/releases/tag/v4.10-r3) ·
 [Mac testing status](docs/PREVIEW_0_4_10_VALIDATION.md).
 
@@ -72,9 +74,10 @@ folder. Source code stays here on GitHub.
 
 ## Get started
 
-1. **Extract the entire Reflect Go ZIP** into a new folder on your external drive
-   or computer. Keep the launcher beside **Reflect Go Files**. For the Starter
-   Pack, run its download helper first, as described above.
+1. **Copy the entire Reflect Go folder** from the Mac disk image, or extract the
+   entire ZIP into a writable folder on your external drive or computer. Keep
+   the launcher beside **Reflect Go Files**. For the Starter Pack, run its download
+   helper first, as described above.
 2. **Open Reflect Go:**
    - **Mac:** open `Reflect Go.app` (macOS 13.3 or later). If asked to locate
      its files, select **Reflect Go Files** from the extracted download.
